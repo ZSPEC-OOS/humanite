@@ -1,9 +1,17 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
 
-logger = logging.getLogger(__name__)
-app = FastAPI(title="Humanite User Management", version="0.1.0")
+from .routers.auth import router as auth_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield  # startup/shutdown hooks go here in later phases
+
+
+app = FastAPI(title="Humanite User Management", version="0.2.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,11 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+
 
 @app.get("/v1/health")
 async def health() -> dict:
-    return {
-        "status": "ok",
-        "service": "user-management",
-        "version": "0.1.0",
-    }
+    return {"status": "ok", "service": "user-management", "version": "0.2.0"}
