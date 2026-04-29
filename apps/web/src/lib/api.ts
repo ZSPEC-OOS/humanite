@@ -30,15 +30,16 @@ export async function apiFetch<T>(
   const resp = await fetch(`${API_BASE}${path}`, { ...options, headers })
 
   if (!resp.ok) {
-    let errorBody: { error?: { code?: string; message?: string } } = {}
+    let errorBody: { error?: { code?: string; message?: string }; detail?: { code?: string; message?: string } } = {}
     try {
       errorBody = await resp.json()
     } catch {
       // ignore parse failure
     }
+    const detail = errorBody.detail ?? errorBody.error
     throw new APIError(
-      errorBody.error?.code ?? 'UNKNOWN_ERROR',
-      errorBody.error?.message ?? `HTTP ${resp.status}`,
+      detail?.code ?? 'UNKNOWN_ERROR',
+      detail?.message ?? `HTTP ${resp.status}`,
       resp.status,
     )
   }
@@ -68,4 +69,118 @@ export async function authRegister(email: string, password: string): Promise<Tok
     { method: 'POST', body: JSON.stringify({ email, password }) },
     true,
   )
+}
+
+// ── Humanize ──────────────────────────────────────────────────────────────────
+
+export interface HumanizeSettings {
+  intensity: number
+  tone: string
+  domain: string
+  preserve_citations: boolean
+}
+
+export interface HumanizeOutput {
+  text: string
+  quality_scores: {
+    bertscore_f1: number
+    nli_entailment: number
+    entity_overlap: number
+    passed: boolean
+    failed_gate: string | null
+    retry_count: number
+  }
+  watermark: {
+    type: string
+    fingerprint: string
+    job_id: string
+    model: string
+    verification_url: string
+    issued_at: string
+  }
+  postprocessor_substitutions: number
+}
+
+export interface HumanizeAPIResponse {
+  job_id: string
+  status: string
+  output: HumanizeOutput | null
+  preprocessing_metadata: {
+    language: string
+    word_count: number
+    char_count: number
+    fact_lock_count: number
+    ai_signal_strength: number
+  } | null
+  processing_metadata: {
+    model_used: string
+    provider_used: string
+    processing_duration_ms: number
+  } | null
+  result_url: string | null
+  warning: string | null
+}
+
+export async function apiHumanize(
+  text: string,
+  settings: HumanizeSettings,
+  asyncMode = false,
+): Promise<HumanizeAPIResponse> {
+  return apiFetch<HumanizeAPIResponse>('/v1/humanize', {
+    method: 'POST',
+    body: JSON.stringify({ text, settings, async_mode: asyncMode }),
+  })
+}
+
+// ── Scan ──────────────────────────────────────────────────────────────────────
+
+export interface FeatureContribution {
+  feature: string
+  observed_value: number
+  direction: 'ai_indicator' | 'human_indicator'
+  contribution: number
+}
+
+export interface ScanAPIResponse {
+  job_id: string
+  status: string
+  scan_id: string | null
+  classification: 'human-written' | 'ai-generated' | 'mixed' | 'uncertain' | null
+  confidence: number | null
+  human_probability: number | null
+  ai_probability: number | null
+  uncertain_probability: number | null
+  per_sentence_perplexity: number[]
+  top_features: FeatureContribution[]
+  explanation: { summary: string; detail: string } | null
+  model_used: string | null
+  processing_duration_ms: number | null
+  result_url: string | null
+  warning: string | null
+}
+
+export async function apiScan(
+  text: string,
+  mode: 'quick' | 'standard' = 'standard',
+): Promise<ScanAPIResponse> {
+  return apiFetch<ScanAPIResponse>('/v1/scan', {
+    method: 'POST',
+    body: JSON.stringify({ text, mode }),
+  })
+}
+
+// ── Job polling ───────────────────────────────────────────────────────────────
+
+export interface JobStatus {
+  job_id: string
+  job_type: string
+  status: string
+  created_at: string
+  completed_at: string | null
+  result_url: string | null
+  error_code: string | null
+}
+
+export async function apiGetJob(jobId: string): Promise<JobStatus> {
+  return apiFetch<JobStatus>(`/v1/jobs/${jobId}`)
 }
