@@ -217,57 +217,6 @@ export async function apiDeletePreset(presetId: string): Promise<void> {
   return apiFetch<void>(`/v1/user/presets/${presetId}`, { method: 'DELETE' })
 }
 
-// ── Batch ────────────────────────────────────────────────────────────────────
-
-export interface BatchItemRequest {
-  item_id: string
-  text: string
-  operation: 'humanize' | 'scan'
-  settings?: Record<string, unknown>
-}
-
-export interface BatchItemStatus {
-  item_id: string
-  status: string
-  job_id?: string
-  error_code?: string
-  skipped_reason?: string
-}
-
-export interface BatchSubmitResponse {
-  batch_job_id: string
-  status: string
-  total_items: number
-  accepted_items: number
-  rejected_items: number
-  item_statuses: BatchItemStatus[]
-  poll_url: string
-}
-
-export interface BatchJobStatus {
-  batch_job_id: string
-  status: string
-  total_items: number
-  completed_items: number
-  failed_items: number
-  progress_percent: number
-  created_at: string
-  completed_at: string | null
-}
-
-export async function apiSubmitBatch(
-  items: BatchItemRequest[],
-): Promise<BatchSubmitResponse> {
-  return apiFetch<BatchSubmitResponse>('/v1/batch', {
-    method: 'POST',
-    body: JSON.stringify({ items }),
-  })
-}
-
-export async function apiBatchStatus(batchId: string): Promise<BatchJobStatus> {
-  return apiFetch<BatchJobStatus>(`/v1/batch/jobs/${batchId}`)
-}
-
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export async function apiExport(
