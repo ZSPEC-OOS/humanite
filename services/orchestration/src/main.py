@@ -1,5 +1,15 @@
 from contextlib import asynccontextmanager
 import logging
+import os
+import sys
+
+# Make shared/ importable: services/orchestration/src -> services/
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "../..")))
+from shared.logging_config import configure_logging
+from shared.tracing import configure_tracing
+
+configure_logging(service_name="orchestration")
+configure_tracing(service_name="orchestration")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
+from .humanize import _validate_text_safety
 
 
 class ScanRequest(BaseModel):
@@ -6,6 +8,11 @@ class ScanRequest(BaseModel):
     mode: str = "standard"
     domain_hint: str = "general"
     async_mode: bool = False
+
+    @field_validator("text")
+    @classmethod
+    def text_no_injection(cls, v: str) -> str:
+        return _validate_text_safety(v)
 
 
 class ScanResponse(BaseModel):
