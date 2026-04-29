@@ -1,9 +1,29 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import logging
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from .routers.preprocess import router as preprocess_router
+
 logger = logging.getLogger(__name__)
-app = FastAPI(title="Humanite Preprocessing", version="0.1.0")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Warm up spaCy models at startup — avoids first-request latency spike
+    logger.info("Loading spaCy models…")
+    from .pipeline.fact_locker import _NLP_LG  # noqa: F401
+    from .pipeline.complexity import _NLP_SM   # noqa: F401
+    logger.info("spaCy models loaded: en_core_web_lg, en_core_web_sm")
+    yield
+
+
+app = FastAPI(
+    title="Humanite Preprocessing",
+    version="0.3.0",
+    lifespan=lifespan,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,11 +33,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(preprocess_router)
+
 
 @app.get("/v1/health")
 async def health() -> dict:
-    return {
-        "status": "ok",
-        "service": "preprocessing",
-        "version": "0.1.0",
-    }
+    return {"status": "ok", "service": "preprocessing", "version": "0.3.0"}
