@@ -1,0 +1,7 @@
+celery==5.4.0
+redis
+httpx
+openai
+bert-score
+torch==2.4.1
+transformers==4.44.2
