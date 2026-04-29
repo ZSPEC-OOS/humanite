@@ -7,14 +7,16 @@ import { useScanStore }     from '@/stores/scanStore'
 import { useEditorStore }   from '@/stores/editorStore'
 import { TextInput }        from '@/components/editor/TextInput'
 import { ControlPanel }     from '@/components/editor/ControlPanel'
+import { PresetSelector }   from '@/components/editor/PresetSelector'
 import { SplitView }        from '@/components/output/SplitView'
+import { ExportMenu }       from '@/components/output/ExportMenu'
 import { ScanReport }       from '@/components/scanner/ScanReport'
 
 export default function Dashboard() {
-  const { isAuthenticated, tier, clearAuth } = useUserStore()
-  const { status: hStatus, reset: resetH }   = useHumanizeStore()
-  const { status: sStatus, reset: resetS }   = useScanStore()
-  const { clearText }                         = useEditorStore()
+  const { isAuthenticated, tier, clearAuth }   = useUserStore()
+  const { status: hStatus, reset: resetH, response } = useHumanizeStore()
+  const { status: sStatus, reset: resetS }     = useScanStore()
+  const { clearText }                           = useEditorStore()
   const router = useRouter()
 
   useEffect(() => {
@@ -47,6 +49,7 @@ export default function Dashboard() {
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 uppercase tracking-wide">
             {tier ?? 'free'}
           </span>
+          <PresetSelector />
           <button
             onClick={handleClear}
             className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
@@ -82,7 +85,17 @@ export default function Dashboard() {
           {/* Output / split view */}
           <div className="flex-1 min-h-0">
             {showOutputPanel ? (
-              <SplitView />
+              <div className="flex flex-col h-full">
+                <div className="flex-1 min-h-0">
+                  <SplitView />
+                </div>
+                {response?.output && (
+                  <div className="shrink-0 flex items-center justify-between
+                                  px-3 py-2 border-t border-gray-200 bg-gray-50">
+                    <ExportMenu />
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center text-gray-400 max-w-xs">

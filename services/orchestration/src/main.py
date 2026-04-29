@@ -15,8 +15,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .middleware.errors import global_error_handler
+from .routers.batch   import router as batch_router
+from .routers.export  import router as export_router
 from .routers.humanize import router as humanize_router
 from .routers.jobs import router as jobs_router
+from .routers.presets import router as presets_router
 from .routers.scan import router as scan_router
 
 logger = logging.getLogger(__name__)
@@ -48,6 +51,9 @@ app.add_exception_handler(Exception, global_error_handler)
 app.include_router(humanize_router)
 app.include_router(scan_router)
 app.include_router(jobs_router)
+app.include_router(batch_router)
+app.include_router(presets_router)
+app.include_router(export_router)
 
 
 @app.get("/v1/health")
