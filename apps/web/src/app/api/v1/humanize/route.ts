@@ -144,7 +144,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: process.env.OPENAI_BASE_URL,
+    })
     const userPrompt = buildUserPrompt(prep.sanitized_text, prep.fact_locks, intensity, tone, domain)
     const start = Date.now()
 

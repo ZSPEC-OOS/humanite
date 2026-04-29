@@ -1,24 +1,20 @@
 import { SignJWT, jwtVerify } from 'jose'
-import { createPrivateKey, createPublicKey, randomBytes, createHash } from 'crypto'
+import { randomBytes, createHash } from 'crypto'
 import bcrypt from 'bcryptjs'
 
 const ACCESS_EXPIRE_MINUTES = 15
 
+function jwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET
+  if (!secret) throw new Error('JWT_SECRET environment variable is not set')
+  return new TextEncoder().encode(secret)
+}
+
 function scopesForTier(tier: string): string[] {
   const base = ['humanize:write', 'scan:write']
-  if (tier === 'pro' || tier === 'enterprise') base.push('batch:write', 'user:read')
+  if (tier === 'pro' || tier === 'enterprise') base.push('user:read')
   if (tier === 'enterprise') base.push('admin:read')
   return base
-}
-
-function privateKey() {
-  const pem = (process.env.JWT_PRIVATE_KEY ?? '').replace(/\\n/g, '\n')
-  return createPrivateKey(pem)
-}
-
-function publicKey() {
-  const pem = (process.env.JWT_PUBLIC_KEY ?? '').replace(/\\n/g, '\n')
-  return createPublicKey(pem)
 }
 
 export async function issueAccessToken(
@@ -33,16 +29,16 @@ export async function issueAccessToken(
     scopes: scopesForTier(tier),
     region,
   })
-    .setProtectedHeader({ alg: 'RS256' })
+    .setProtectedHeader({ alg: 'HS256' })
     .setSubject(userId)
     .setIssuedAt()
     .setExpirationTime(`${ACCESS_EXPIRE_MINUTES}m`)
     .setJti(crypto.randomUUID())
-    .sign(privateKey())
+    .sign(jwtSecret())
 }
 
 export async function verifyAccessToken(token: string): Promise<Record<string, unknown>> {
-  const { payload } = await jwtVerify(token, publicKey(), { algorithms: ['RS256'] })
+  const { payload } = await jwtVerify(token, jwtSecret(), { algorithms: ['HS256'] })
   return payload as Record<string, unknown>
 }
 
