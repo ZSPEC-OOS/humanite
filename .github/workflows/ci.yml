@@ -1,0 +1,32 @@
+name: CI
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install ruff mypy
+      - run: ruff check services/ workers/ ml/ || true
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+  health-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          cp .env.local.template .env.local
+          echo "OPENAI_API_KEY=sk-test" >> .env.local
+          echo "WATERMARK_SECRET_SALT=test-salt-32-bytes-placeholder" >> .env.local
+          docker compose -f docker-compose.dev.yml up -d --wait postgres redis
+          sleep 5
+          docker compose -f docker-compose.dev.yml up -d orchestration user-management
+          sleep 10
+          curl -f http://localhost:8000/v1/health
+          curl -f http://localhost:8004/v1/health

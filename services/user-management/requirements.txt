@@ -1,0 +1,13 @@
+fastapi==0.115.0
+uvicorn[standard]
+pydantic==2.9.0
+pydantic-settings
+email-validator
+sqlalchemy==2.0.35
+asyncpg
+python-jose[cryptography]==3.3.0
+argon2-cffi
+redis
+httpx
+pytest==8.3.3
+pytest-asyncio

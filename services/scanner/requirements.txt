@@ -1,0 +1,16 @@
+fastapi==0.115.0
+uvicorn[standard]
+pydantic==2.9.0
+pydantic-settings
+torch==2.4.1
+transformers==4.44.2
+spacy==3.7.6
+nltk
+xgboost
+scikit-learn
+pandas
+httpx
+celery==5.4.0
+redis
+pytest==8.3.3
+pytest-asyncio
