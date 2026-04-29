@@ -2,15 +2,17 @@ from contextlib import asynccontextmanager
 import logging
 import os
 import sys
+import time
 
 sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "../..")))
 from shared.logging_config import configure_logging
 from shared.tracing import configure_tracing
+from shared.metrics import HTTP_REQUESTS_TOTAL, HTTP_REQUEST_DURATION, metrics_response
 
 configure_logging(service_name="user-management")
 configure_tracing(service_name="user-management")
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers.auth import router as auth_router
@@ -35,7 +37,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration = time.perf_counter() - start
+    path = request.url.path
+    HTTP_REQUESTS_TOTAL.labels(
+        service="user-management",
+        method=request.method,
+        path=path,
+        status_code=str(response.status_code),
+    ).inc()
+    HTTP_REQUEST_DURATION.labels(service="user-management", path=path).observe(duration)
+    return response
+
+
 app.include_router(auth_router)
+
+
+@app.get("/metrics")
+async def metrics():
+    return metrics_response()
 
 
 @app.get("/v1/health")

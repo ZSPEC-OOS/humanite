@@ -1,6 +1,8 @@
 import hashlib
 import json
 import logging
+import os
+import sys
 import time
 from uuid import uuid4
 
@@ -13,6 +15,9 @@ from ..detection.features import extract_features, FEATURE_NAMES
 from ..detection.perplexity import compute_perplexity
 from ..detection.rule_filter import rule_filter
 from ..schemas import FeatureContribution, ScanRequest, ScanResponse
+
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "../../..")))
+from shared.metrics import SCAN_JOBS_TOTAL, SCAN_CONFIDENCE, SCAN_DURATION, ACTIVE_JOBS
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/scan", tags=["scanner"])
@@ -129,114 +134,130 @@ async def scan(body: ScanRequest) -> ScanResponse:
                     "message": "Text must be at least 20 characters."},
         )
 
-    # ── Cache lookup ──────────────────────────────────────────────────────────
-    cache_key = _cache_key(text)
-    cached = await _cache_get(cache_key)
-    if cached:
-        data = json.loads(cached)
-        data["scan_id"]    = scan_id   # Fresh scan_id per request
-        data["cache_hit"]  = True
-        data["processing_duration_ms"] = int((time.monotonic() - start_time) * 1000)
-        return ScanResponse(**data)
+    ACTIVE_JOBS.labels(job_type="scan").inc()
 
-    # ── Stage 1: Rule filter (fast path) ─────────────────────────────────────
-    rule_result = rule_filter(text)
+    try:
+        # ── Cache lookup ──────────────────────────────────────────────────────────
+        cache_key = _cache_key(text)
+        cached = await _cache_get(cache_key)
+        if cached:
+            data = json.loads(cached)
+            data["scan_id"]    = scan_id   # Fresh scan_id per request
+            data["cache_hit"]  = True
+            data["processing_duration_ms"] = int((time.monotonic() - start_time) * 1000)
+            return ScanResponse(**data)
 
-    if rule_result == "uncertain":
-        return _uncertain_response(scan_id, start_time, reason="text_too_short")
+        # ── Stage 1: Rule filter (fast path) ─────────────────────────────────────
+        rule_result = rule_filter(text)
 
-    if rule_result == "ai-generated":
+        if rule_result == "uncertain":
+            return _uncertain_response(scan_id, start_time, reason="text_too_short")
+
+        if rule_result == "ai-generated":
+            resp = ScanResponse(
+                scan_id=scan_id,
+                classification="ai-generated",
+                confidence=0.99,
+                human_probability=0.01,
+                ai_probability=0.99,
+                uncertain_probability=0.0,
+                per_sentence_perplexity=[],
+                top_features=[
+                    FeatureContribution(
+                        feature="bot_signature",
+                        observed_value=1.0,
+                        direction="ai_indicator",
+                        contribution=1.0,
+                    )
+                ],
+                explanation={
+                    "summary": "Text classified as ai-generated with 99% confidence.",
+                    "detail": "AI bot signature phrase detected in text (rule-based filter).",
+                },
+                model_used="rule_filter",
+                processing_duration_ms=int((time.monotonic() - start_time) * 1000),
+            )
+            SCAN_JOBS_TOTAL.labels(classification="ai-generated").inc()
+            SCAN_CONFIDENCE.observe(0.99)
+            SCAN_DURATION.observe(time.monotonic() - start_time)
+            await _cache_result(cache_key, resp)
+            return resp
+
+        if rule_result == "human-written":
+            resp = ScanResponse(
+                scan_id=scan_id,
+                classification="human-written",
+                confidence=0.85,
+                human_probability=0.85,
+                ai_probability=0.15,
+                uncertain_probability=0.0,
+                per_sentence_perplexity=[],
+                top_features=[
+                    FeatureContribution(
+                        feature="informal_human_signals",
+                        observed_value=1.0,
+                        direction="human_indicator",
+                        contribution=0.85,
+                    )
+                ],
+                explanation={
+                    "summary": "Text classified as human-written with 85% confidence.",
+                    "detail": "Multiple informal human-writing signals detected (hedging, first-person markers).",
+                },
+                model_used="rule_filter",
+                processing_duration_ms=int((time.monotonic() - start_time) * 1000),
+            )
+            SCAN_JOBS_TOTAL.labels(classification="human-written").inc()
+            SCAN_CONFIDENCE.observe(0.85)
+            SCAN_DURATION.observe(time.monotonic() - start_time)
+            await _cache_result(cache_key, resp)
+            return resp
+
+        # ── Stage 2: Statistical feature extraction ───────────────────────────────
+        feature_vec = extract_features(text)
+
+        # ── Stage 3: Transformer classifier ───────────────────────────────────────
+        cls_result = classify(text)
+
+        # ── Stage 4: Per-sentence perplexity (skip in quick mode) ─────────────────
+        perplexity: list[float] = []
+        if body.mode != "quick":
+            perplexity = compute_perplexity(text)
+
+        # ── Assemble response ─────────────────────────────────────────────────────
+        classification     = cls_result["classification"]
+        confidence         = cls_result["confidence"]
+        human_prob         = cls_result["human_probability"]
+        ai_prob            = cls_result["ai_probability"]
+        uncertain_prob     = 1.0 - confidence if classification == "uncertain" else 0.0
+        top_feats          = _top_features(feature_vec.tolist(), classification)
+        explanation        = _build_explanation(
+            classification, confidence, human_prob, ai_prob,
+            rule_fired=False, features=None, perplexity=perplexity,
+        )
+
         resp = ScanResponse(
             scan_id=scan_id,
-            classification="ai-generated",
-            confidence=0.99,
-            human_probability=0.01,
-            ai_probability=0.99,
-            uncertain_probability=0.0,
-            per_sentence_perplexity=[],
-            top_features=[
-                FeatureContribution(
-                    feature="bot_signature",
-                    observed_value=1.0,
-                    direction="ai_indicator",
-                    contribution=1.0,
-                )
-            ],
-            explanation={
-                "summary": "Text classified as ai-generated with 99% confidence.",
-                "detail": "AI bot signature phrase detected in text (rule-based filter).",
-            },
-            model_used="rule_filter",
+            classification=classification,
+            confidence=confidence,
+            human_probability=human_prob,
+            ai_probability=ai_prob,
+            uncertain_probability=round(uncertain_prob, 4),
+            per_sentence_perplexity=perplexity,
+            top_features=top_feats,
+            explanation=explanation,
+            model_used=cls_result["model_used"],
             processing_duration_ms=int((time.monotonic() - start_time) * 1000),
         )
+
+        SCAN_JOBS_TOTAL.labels(classification=classification).inc()
+        SCAN_CONFIDENCE.observe(confidence)
+        SCAN_DURATION.observe(time.monotonic() - start_time)
+
         await _cache_result(cache_key, resp)
         return resp
-
-    if rule_result == "human-written":
-        resp = ScanResponse(
-            scan_id=scan_id,
-            classification="human-written",
-            confidence=0.85,
-            human_probability=0.85,
-            ai_probability=0.15,
-            uncertain_probability=0.0,
-            per_sentence_perplexity=[],
-            top_features=[
-                FeatureContribution(
-                    feature="informal_human_signals",
-                    observed_value=1.0,
-                    direction="human_indicator",
-                    contribution=0.85,
-                )
-            ],
-            explanation={
-                "summary": "Text classified as human-written with 85% confidence.",
-                "detail": "Multiple informal human-writing signals detected (hedging, first-person markers).",
-            },
-            model_used="rule_filter",
-            processing_duration_ms=int((time.monotonic() - start_time) * 1000),
-        )
-        await _cache_result(cache_key, resp)
-        return resp
-
-    # ── Stage 2: Statistical feature extraction ───────────────────────────────
-    feature_vec = extract_features(text)
-
-    # ── Stage 3: Transformer classifier ───────────────────────────────────────
-    cls_result = classify(text)
-
-    # ── Stage 4: Per-sentence perplexity (skip in quick mode) ─────────────────
-    perplexity: list[float] = []
-    if body.mode != "quick":
-        perplexity = compute_perplexity(text)
-
-    # ── Assemble response ─────────────────────────────────────────────────────
-    classification     = cls_result["classification"]
-    confidence         = cls_result["confidence"]
-    human_prob         = cls_result["human_probability"]
-    ai_prob            = cls_result["ai_probability"]
-    uncertain_prob     = 1.0 - confidence if classification == "uncertain" else 0.0
-    top_feats          = _top_features(feature_vec.tolist(), classification)
-    explanation        = _build_explanation(
-        classification, confidence, human_prob, ai_prob,
-        rule_fired=False, features=None, perplexity=perplexity,
-    )
-
-    resp = ScanResponse(
-        scan_id=scan_id,
-        classification=classification,
-        confidence=confidence,
-        human_probability=human_prob,
-        ai_probability=ai_prob,
-        uncertain_probability=round(uncertain_prob, 4),
-        per_sentence_perplexity=perplexity,
-        top_features=top_feats,
-        explanation=explanation,
-        model_used=cls_result["model_used"],
-        processing_duration_ms=int((time.monotonic() - start_time) * 1000),
-    )
-    await _cache_result(cache_key, resp)
-    return resp
+    finally:
+        ACTIVE_JOBS.labels(job_type="scan").dec()
 
 
 def _uncertain_response(
@@ -244,6 +265,9 @@ def _uncertain_response(
     start_time: float,
     reason: str = "low_confidence",
 ) -> ScanResponse:
+    SCAN_JOBS_TOTAL.labels(classification="uncertain").inc()
+    SCAN_CONFIDENCE.observe(0.50)
+    SCAN_DURATION.observe(time.monotonic() - start_time)
     return ScanResponse(
         scan_id=scan_id,
         classification="uncertain",
