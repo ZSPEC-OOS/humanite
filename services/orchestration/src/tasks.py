@@ -24,3 +24,4 @@ celery_app.conf.update(
 # Declare task signatures so routers can call .delay() without importing workers
 queue_humanize = celery_app.signature("humanize.process")
 queue_scan     = celery_app.signature("scan.process")
+queue_batch    = celery_app.signature("batch.process")

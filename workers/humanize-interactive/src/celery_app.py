@@ -18,3 +18,5 @@ celery_app.conf.update(
     task_queues={"humanize.interactive": {}},
     task_default_queue="humanize.interactive",
 )
+
+celery_app.autodiscover_tasks(["src.batch_tasks"])
