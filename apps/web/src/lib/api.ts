@@ -1,6 +1,8 @@
 import { useUserStore } from '@/stores/userStore'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'
+// In production this is empty string (same-origin). Set NEXT_PUBLIC_API_URL only
+// when pointing at an external backend (legacy microservices deployment).
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 export class APIError extends Error {
   constructor(
@@ -27,7 +29,8 @@ export async function apiFetch<T>(
     headers['Authorization'] = `Bearer ${token}`
   }
 
-  const resp = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  const url = path.startsWith('http') ? path : `${API_BASE}/api${path}`
+  const resp = await fetch(url, { ...options, headers })
 
   if (!resp.ok) {
     let errorBody: { error?: { code?: string; message?: string }; detail?: { code?: string; message?: string } } = {}
@@ -275,7 +278,7 @@ export async function apiExport(
   title = 'Humanite Export',
 ): Promise<Blob> {
   const token = useUserStore.getState().accessToken
-  const resp = await fetch(`${API_BASE}/v1/export`, {
+  const resp = await fetch(`${API_BASE}/api/v1/export`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
