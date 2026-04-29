@@ -1,5 +1,14 @@
 from contextlib import asynccontextmanager
 import logging
+import os
+import sys
+
+sys.path.insert(0, os.path.normpath(os.path.join(os.path.dirname(__file__), "../..")))
+from shared.logging_config import configure_logging
+from shared.tracing import configure_tracing
+
+configure_logging(service_name="humanization")
+configure_tracing(service_name="humanization")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
