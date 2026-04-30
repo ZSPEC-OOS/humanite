@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { randomUUID, createHash } from 'crypto'
-import { sql } from '@/lib/db'
+import { db } from '@/lib/firestore'
 import { requireAuth, isAuthFailure } from '@/lib/require-auth'
 import { preprocess } from '@/lib/preprocess'
 
@@ -181,12 +181,19 @@ export async function POST(req: NextRequest) {
   const jobId = randomUUID()
   const scanId = randomUUID()
   const inputHash = createHash('sha256').update(text).digest('hex')
+  const now = new Date()
 
-  await sql`
-    INSERT INTO jobs (id, user_id, job_type, status, input_text_hash, settings)
-    VALUES (${jobId}, ${auth.claims.sub}, 'scan', 'processing',
-            ${inputHash}, ${JSON.stringify({ mode })}::jsonb)
-  `
+  await db().collection('jobs').doc(jobId).set({
+    userId: auth.claims.sub,
+    jobType: 'scan',
+    status: 'processing',
+    inputTextHash: inputHash,
+    settings: { mode },
+    createdAt: now,
+    updatedAt: now,
+    completedAt: null,
+    errorCode: null,
+  })
 
   try {
     // Fast rule-based pass first
@@ -240,11 +247,7 @@ export async function POST(req: NextRequest) {
       result = await classifyWithOpenAI(sanitized, mode)
     }
 
-    await sql`
-      UPDATE jobs
-      SET status = 'completed', completed_at = NOW(), updated_at = NOW()
-      WHERE id = ${jobId}
-    `
+    await db().collection('jobs').doc(jobId).update({ status: 'completed', completedAt: new Date(), updatedAt: new Date() })
 
     return NextResponse.json({
       job_id: jobId,
@@ -264,11 +267,7 @@ export async function POST(req: NextRequest) {
       warning: null,
     })
   } catch (err) {
-    await sql`
-      UPDATE jobs
-      SET status = 'failed', error_code = 'INTERNAL_PIPELINE_ERROR', updated_at = NOW()
-      WHERE id = ${jobId}
-    `
+    await db().collection('jobs').doc(jobId).update({ status: 'failed', errorCode: 'INTERNAL_PIPELINE_ERROR', updatedAt: new Date() })
     console.error('Scan failed', { jobId, err })
     return NextResponse.json(
       { error: { code: 'DEPENDENCY_UPSTREAM_ERROR', message: 'An upstream service failed. Please retry.' } },
