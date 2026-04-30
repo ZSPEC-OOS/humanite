@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { apiGetJob, JobStatus } from '@/lib/api'
 
-const POLL_INTERVAL_MS = 3000
+const POLL_INTERVAL_MS = 3_000
 const MAX_POLLS = 60   // 3 minutes max
 
 interface UseJobPollerOptions {
@@ -12,49 +12,63 @@ interface UseJobPollerOptions {
 
 export function useJobPoller({ jobId, onComplete, onError }: UseJobPollerOptions) {
   const [polling, setPolling] = useState(false)
-  const pollCount = useRef(0)
-  const timer     = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Capture callbacks in refs so the effect depends only on jobId.
+  // Without this, passing inline arrow functions would cause infinite re-runs.
+  const onCompleteRef = useRef(onComplete)
+  const onErrorRef    = useRef(onError)
+  onCompleteRef.current = onComplete
+  onErrorRef.current    = onError
 
   useEffect(() => {
     if (!jobId) return
+    const activeJobId = jobId   // narrow to string for the closure
 
-    pollCount.current = 0
+    let pollCount = 0
+    let timerId: ReturnType<typeof setTimeout> | null = null
+    let cancelled = false
+
     setPolling(true)
 
-    const poll = async () => {
-      if (pollCount.current >= MAX_POLLS) {
+    async function poll() {
+      if (cancelled) return
+
+      if (pollCount >= MAX_POLLS) {
         setPolling(false)
-        onError('Job timed out waiting for completion.')
+        onErrorRef.current('Job timed out waiting for completion.')
         return
       }
 
       try {
-        const job = await apiGetJob(jobId)
-        pollCount.current += 1
+        const job = await apiGetJob(activeJobId)
+        if (cancelled) return
+        pollCount += 1
 
         if (job.status === 'completed') {
           setPolling(false)
-          onComplete(job)
+          onCompleteRef.current(job)
         } else if (job.status === 'failed') {
           setPolling(false)
-          onError(job.error_code ?? 'Job failed.')
+          onErrorRef.current(job.error_code ?? 'Job failed.')
         } else {
-          // pending or processing — keep polling
-          timer.current = setTimeout(poll, POLL_INTERVAL_MS)
+          timerId = setTimeout(poll, POLL_INTERVAL_MS)
         }
       } catch {
-        setPolling(false)
-        onError('Failed to poll job status.')
+        if (!cancelled) {
+          setPolling(false)
+          onErrorRef.current('Failed to poll job status.')
+        }
       }
     }
 
-    timer.current = setTimeout(poll, POLL_INTERVAL_MS)
+    timerId = setTimeout(poll, POLL_INTERVAL_MS)
 
     return () => {
-      if (timer.current) clearTimeout(timer.current)
+      cancelled = true
+      if (timerId) clearTimeout(timerId)
       setPolling(false)
     }
-  }, [jobId])   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [jobId])
 
   return { polling }
 }

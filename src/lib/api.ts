@@ -58,14 +58,6 @@ export interface TokenResponse {
   expires_in: number
 }
 
-export async function authLogin(email: string, password: string): Promise<TokenResponse> {
-  return apiFetch<TokenResponse>(
-    '/v1/auth/login',
-    { method: 'POST', body: JSON.stringify({ email, password }) },
-    true,
-  )
-}
-
 export async function authRegister(email: string, password: string): Promise<TokenResponse> {
   return apiFetch<TokenResponse>(
     '/v1/auth/register',

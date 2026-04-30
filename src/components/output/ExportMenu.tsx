@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useHumanizeStore } from '@/stores/humanizeStore'
 import { apiExport }        from '@/lib/api'
+import { Spinner }          from '@/components/ui/Spinner'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -57,8 +58,7 @@ export function ExportMenu() {
         >
           {loading === key ? (
             <span className="flex items-center gap-1">
-              <span className="inline-block w-2.5 h-2.5 border-2 border-white/30
-                               border-t-white/70 rounded-full animate-spin" />
+              <Spinner className="w-2.5 h-2.5 border-white/30 border-t-white/70" />
               {label}
             </span>
           ) : label}

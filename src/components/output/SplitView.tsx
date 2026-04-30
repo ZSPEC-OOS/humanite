@@ -3,6 +3,7 @@ import { useRef, useEffect, useState } from 'react'
 import { useEditorStore }   from '@/stores/editorStore'
 import { useHumanizeStore } from '@/stores/humanizeStore'
 import { InlineDiff }       from './InlineDiff'
+import { Spinner }          from '@/components/ui/Spinner'
 
 type ViewMode = 'split' | 'diff' | 'output'
 
@@ -72,8 +73,7 @@ export function SplitView() {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <div className="w-10 h-10 rounded-full border-2 border-brand-violet/30
-                          border-t-brand-violet animate-spin mx-auto mb-4" />
+          <Spinner className="w-10 h-10 border-brand-violet/30 border-t-brand-violet block mx-auto mb-4" />
           <p className="text-sm text-white/50">Rewriting with quality gates…</p>
           <p className="text-xs text-white/30 mt-1">Validating semantic preservation</p>
         </div>

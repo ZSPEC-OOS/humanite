@@ -1,6 +1,7 @@
 'use client'
 import { useScanStore } from '@/stores/scanStore'
 import { PerplexityChart } from './PerplexityChart'
+import { Spinner } from '@/components/ui/Spinner'
 
 const CLASS_CONFIG = {
   'human-written': {
@@ -42,8 +43,7 @@ export function ScanReport() {
     return (
       <div className="h-full flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="w-8 h-8 rounded-full border-2 border-brand-violet/30
-                          border-t-brand-violet animate-spin mx-auto mb-3" />
+          <Spinner className="w-8 h-8 border-brand-violet/30 border-t-brand-violet block mx-auto mb-3" />
           <p className="text-sm text-white/40">Analyzing…</p>
         </div>
       </div>
