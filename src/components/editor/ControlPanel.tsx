@@ -28,73 +28,75 @@ export function ControlPanel() {
   const sLoading  = sStatus === 'loading'
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-3
-                    bg-dark-card border-b border-white/8 shrink-0">
+    <div className="bg-dark-card border-b border-white/8 shrink-0">
 
-      {/* Intensity */}
-      <div className="flex items-center gap-2.5">
-        <label className="text-xs font-medium text-white/40 whitespace-nowrap">Intensity</label>
-        <input
-          type="range" min={1} max={10} step={1}
-          value={settings.intensity}
-          onChange={(e) => setSettings({ intensity: Number(e.target.value) })}
-          className="w-24 h-1 rounded-full appearance-none cursor-pointer
-                     bg-white/10 accent-violet-500"
-          style={{ accentColor: '#a855f7' }}
-        />
-        <span className="text-xs font-semibold text-brand-violet w-[88px]">
-          {settings.intensity} — {intensityLabel(settings.intensity)}
-        </span>
+      {/* ── Settings row ── */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2">
+
+        {/* Intensity */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-white/40 whitespace-nowrap">Intensity</label>
+          <input
+            type="range" min={1} max={10} step={1}
+            value={settings.intensity}
+            onChange={(e) => setSettings({ intensity: Number(e.target.value) })}
+            className="w-20 sm:w-24 h-1 rounded-full appearance-none cursor-pointer bg-white/10"
+            style={{ accentColor: '#a855f7' }}
+          />
+          <span className="text-xs font-semibold text-brand-violet w-[80px]">
+            {settings.intensity} — {intensityLabel(settings.intensity)}
+          </span>
+        </div>
+
+        <div className="w-px h-4 bg-white/10 hidden sm:block" />
+
+        {/* Tone */}
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs font-medium text-white/40">Tone</label>
+          <select value={settings.tone}
+            onChange={(e) => setSettings({ tone: e.target.value })}
+            className={darkSelectCls}>
+            {TONES.map(t => (
+              <option key={t} value={t} style={{ background: '#0f0f1c' }}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Domain */}
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs font-medium text-white/40">Domain</label>
+          <select value={settings.domain}
+            onChange={(e) => setSettings({ domain: e.target.value })}
+            className={darkSelectCls}>
+            {DOMAINS.map(d => (
+              <option key={d} value={d} style={{ background: '#0f0f1c' }}>
+                {d.charAt(0).toUpperCase() + d.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Citations — hidden on very small screens to keep row clean */}
+        <label className="hidden sm:flex items-center gap-2 text-xs text-white/40 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={settings.preserve_citations}
+            onChange={(e) => setSettings({ preserve_citations: e.target.checked })}
+            className="w-3.5 h-3.5 rounded border-white/20 bg-white/5"
+            style={{ accentColor: '#a855f7' }}
+          />
+          Preserve citations
+        </label>
       </div>
 
-      <div className="w-px h-4 bg-white/10" />
-
-      {/* Tone */}
-      <div className="flex items-center gap-2">
-        <label className="text-xs font-medium text-white/40">Tone</label>
-        <select value={settings.tone}
-          onChange={(e) => setSettings({ tone: e.target.value })}
-          className={darkSelectCls}>
-          {TONES.map(t => (
-            <option key={t} value={t} style={{ background: '#0f0f1c' }}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Domain */}
-      <div className="flex items-center gap-2">
-        <label className="text-xs font-medium text-white/40">Domain</label>
-        <select value={settings.domain}
-          onChange={(e) => setSettings({ domain: e.target.value })}
-          className={darkSelectCls}>
-          {DOMAINS.map(d => (
-            <option key={d} value={d} style={{ background: '#0f0f1c' }}>
-              {d.charAt(0).toUpperCase() + d.slice(1)}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Citations */}
-      <label className="flex items-center gap-2 text-xs text-white/40 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={settings.preserve_citations}
-          onChange={(e) => setSettings({ preserve_citations: e.target.checked })}
-          className="w-3.5 h-3.5 rounded border-white/20 bg-white/5 accent-violet-500"
-          style={{ accentColor: '#a855f7' }}
-        />
-        Preserve citations
-      </label>
-
-      {/* Action buttons */}
-      <div className="flex gap-2 ml-auto">
+      {/* ── Action buttons row ── */}
+      <div className="flex gap-2 px-4 pb-3">
         <button
           onClick={() => humanize(text)}
           disabled={!canSubmit || hLoading}
-          className="px-4 py-1.5 text-xs font-semibold rounded-lg
+          className="flex-1 sm:flex-none sm:px-5 py-2 text-sm font-semibold rounded-xl
                      bg-gradient-to-r from-violet-600 via-purple-500 to-pink-500
                      text-white hover:opacity-90
                      disabled:opacity-30 disabled:cursor-not-allowed
@@ -102,8 +104,8 @@ export function ControlPanel() {
                      focus:outline-none focus:ring-2 focus:ring-violet-500/50"
         >
           {hLoading ? (
-            <span className="flex items-center gap-1.5">
-              <Spinner className="w-3 h-3 border-white" />
+            <span className="flex items-center justify-center gap-2">
+              <Spinner className="w-3.5 h-3.5 border-white" />
               Humanizing…
             </span>
           ) : 'Humanize'}
@@ -112,19 +114,33 @@ export function ControlPanel() {
         <button
           onClick={() => scan(text)}
           disabled={!canSubmit || sLoading}
-          className="px-4 py-1.5 text-xs font-semibold rounded-lg
+          className="flex-1 sm:flex-none sm:px-5 py-2 text-sm font-semibold rounded-xl
                      bg-white/8 border border-white/15 text-white/80
                      hover:bg-white/12 hover:border-white/25
                      disabled:opacity-30 disabled:cursor-not-allowed
                      transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
         >
           {sLoading ? (
-            <span className="flex items-center gap-1.5">
-              <Spinner className="w-3 h-3 border-white/60" />
+            <span className="flex items-center justify-center gap-2">
+              <Spinner className="w-3.5 h-3.5 border-white/60" />
               Scanning…
             </span>
           ) : 'Scan'}
         </button>
+
+        {/* Citations checkbox on mobile — shown as icon button below the slider row */}
+        <label className="sm:hidden flex items-center gap-1.5 text-xs text-white/40
+                          cursor-pointer select-none border border-white/10 rounded-xl
+                          px-3 whitespace-nowrap bg-white/5">
+          <input
+            type="checkbox"
+            checked={settings.preserve_citations}
+            onChange={(e) => setSettings({ preserve_citations: e.target.checked })}
+            className="w-3.5 h-3.5"
+            style={{ accentColor: '#a855f7' }}
+          />
+          Citations
+        </label>
       </div>
     </div>
   )

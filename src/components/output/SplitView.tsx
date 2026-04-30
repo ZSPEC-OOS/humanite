@@ -7,7 +7,7 @@ import { Spinner }          from '@/components/ui/Spinner'
 
 type ViewMode = 'split' | 'diff' | 'output'
 
-export function SplitView() {
+export function SplitView({ mobileOutputOnly = false }: { mobileOutputOnly?: boolean }) {
   const { text }                    = useEditorStore()
   const { response, status, error } = useHumanizeStore()
   const [mode, setMode]             = useState<ViewMode>('split')
@@ -145,8 +145,8 @@ export function SplitView() {
       <div className="flex-1 min-h-0 flex">
         {mode === 'split' && (
           <>
-            {/* Original */}
-            <div className="flex-1 flex flex-col border-r border-white/8">
+            {/* Original — hidden on mobile (user reads it in the Input tab) */}
+            <div className={`flex-1 flex flex-col border-r border-white/8 ${mobileOutputOnly ? 'hidden md:flex' : 'flex'}`}>
               <div className="flex items-center gap-2 px-4 py-2
                               bg-dark-card border-b border-white/8 shrink-0">
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
