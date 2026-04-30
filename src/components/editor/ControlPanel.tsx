@@ -7,20 +7,19 @@ const TONES   = ['balanced', 'formal', 'casual', 'academic', 'professional']
 const DOMAINS = ['general', 'academic', 'business', 'technical', 'medical', 'legal']
 
 const INTENSITY_LABELS: Record<number, string> = {
-  1: 'Minimal',
-  3: 'Light',
-  5: 'Moderate',
-  7: 'Heavy',
-  10: 'Aggressive',
+  1: 'Minimal', 3: 'Light', 5: 'Moderate', 7: 'Heavy', 10: 'Aggressive',
 }
 
 function intensityLabel(v: number): string {
   const keys = [1, 3, 5, 7, 10]
-  const nearest = keys.reduce((a, b) =>
-    Math.abs(b - v) < Math.abs(a - v) ? b : a
-  )
+  const nearest = keys.reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a)
   return INTENSITY_LABELS[nearest] ?? ''
 }
+
+const selectCls = `text-xs rounded-lg px-2.5 py-1.5 border
+  bg-white/5 border-white/10 text-white/70
+  focus:outline-none focus:border-brand-violet/60 focus:ring-1 focus:ring-brand-violet/40
+  appearance-none cursor-pointer`
 
 export function ControlPanel() {
   const { settings, setSettings, humanize, status: hStatus } = useHumanizeStore()
@@ -32,38 +31,35 @@ export function ControlPanel() {
   const sLoading  = sStatus === 'loading'
 
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-200 shrink-0">
+    <div className="flex flex-wrap items-center gap-3 px-4 py-3
+                    bg-dark-card border-b border-white/8 shrink-0">
+
       {/* Intensity */}
-      <div className="flex items-center gap-2">
-        <label className="text-xs font-medium text-gray-500 whitespace-nowrap">
-          Intensity
-        </label>
+      <div className="flex items-center gap-2.5">
+        <label className="text-xs font-medium text-white/40 whitespace-nowrap">Intensity</label>
         <input
-          type="range"
-          min={1}
-          max={10}
-          step={1}
+          type="range" min={1} max={10} step={1}
           value={settings.intensity}
           onChange={(e) => setSettings({ intensity: Number(e.target.value) })}
-          className="w-24 accent-blue-600"
+          className="w-24 h-1 rounded-full appearance-none cursor-pointer
+                     bg-white/10 accent-violet-500"
+          style={{ accentColor: '#a855f7' }}
         />
-        <span className="text-xs font-semibold text-blue-700 w-16">
+        <span className="text-xs font-semibold text-brand-violet w-[88px]">
           {settings.intensity} — {intensityLabel(settings.intensity)}
         </span>
       </div>
 
-      <div className="w-px h-5 bg-gray-200" />
+      <div className="w-px h-4 bg-white/10" />
 
       {/* Tone */}
-      <div className="flex items-center gap-1.5">
-        <label className="text-xs font-medium text-gray-500">Tone</label>
-        <select
-          value={settings.tone}
+      <div className="flex items-center gap-2">
+        <label className="text-xs font-medium text-white/40">Tone</label>
+        <select value={settings.tone}
           onChange={(e) => setSettings({ tone: e.target.value })}
-          className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {TONES.map((t) => (
-            <option key={t} value={t}>
+          className={selectCls}>
+          {TONES.map(t => (
+            <option key={t} value={t} style={{ background: '#0f0f1c' }}>
               {t.charAt(0).toUpperCase() + t.slice(1)}
             </option>
           ))}
@@ -71,66 +67,66 @@ export function ControlPanel() {
       </div>
 
       {/* Domain */}
-      <div className="flex items-center gap-1.5">
-        <label className="text-xs font-medium text-gray-500">Domain</label>
-        <select
-          value={settings.domain}
+      <div className="flex items-center gap-2">
+        <label className="text-xs font-medium text-white/40">Domain</label>
+        <select value={settings.domain}
           onChange={(e) => setSettings({ domain: e.target.value })}
-          className="text-xs border border-gray-200 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          {DOMAINS.map((d) => (
-            <option key={d} value={d}>
+          className={selectCls}>
+          {DOMAINS.map(d => (
+            <option key={d} value={d} style={{ background: '#0f0f1c' }}>
               {d.charAt(0).toUpperCase() + d.slice(1)}
             </option>
           ))}
         </select>
       </div>
 
-      {/* Citations toggle */}
-      <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+      {/* Citations */}
+      <label className="flex items-center gap-2 text-xs text-white/40 cursor-pointer select-none">
         <input
           type="checkbox"
           checked={settings.preserve_citations}
           onChange={(e) => setSettings({ preserve_citations: e.target.checked })}
-          className="accent-blue-600"
+          className="w-3.5 h-3.5 rounded border-white/20 bg-white/5 accent-violet-500"
+          style={{ accentColor: '#a855f7' }}
         />
         Preserve citations
       </label>
 
-      {/* Actions */}
+      {/* Action buttons */}
       <div className="flex gap-2 ml-auto">
         <button
           onClick={() => humanize(text)}
           disabled={!canSubmit || hLoading}
-          className="px-4 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg
-                     hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed
-                     transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+          className="px-4 py-1.5 text-xs font-semibold rounded-lg
+                     bg-gradient-to-r from-violet-600 via-purple-500 to-pink-500
+                     text-white hover:opacity-90
+                     disabled:opacity-30 disabled:cursor-not-allowed
+                     transition-opacity shadow-md shadow-violet-900/30
+                     focus:outline-none focus:ring-2 focus:ring-violet-500/50"
         >
           {hLoading ? (
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Humanizing…
             </span>
-          ) : (
-            'Humanize'
-          )}
+          ) : 'Humanize'}
         </button>
 
         <button
           onClick={() => scan(text)}
           disabled={!canSubmit || sLoading}
-          className="px-4 py-1.5 text-xs font-semibold bg-purple-600 text-white rounded-lg
-                     hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed
-                     transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+          className="px-4 py-1.5 text-xs font-semibold rounded-lg
+                     bg-white/8 border border-white/15 text-white/80
+                     hover:bg-white/12 hover:border-white/25
+                     disabled:opacity-30 disabled:cursor-not-allowed
+                     transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
         >
           {sLoading ? (
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="inline-block w-3 h-3 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
               Scanning…
             </span>
-          ) : (
-            'Scan'
-          )}
+          ) : 'Scan'}
         </button>
       </div>
     </div>
