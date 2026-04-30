@@ -5,14 +5,14 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
-  title: 'Humanite — AI Text Converter',
-  description: 'Transform AI-generated text into natural human prose.',
+  title: 'Humanite — AI to Human Text Converter',
+  description: 'Transform AI-generated text into natural, undetectable human prose.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased bg-dark-base text-white">{children}</body>
     </html>
   )
 }
