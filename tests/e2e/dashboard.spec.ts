@@ -4,7 +4,6 @@ import { test, expect, Page } from '@playwright/test'
 
 const CORRECT_PIN = '5522'
 
-/** Enter PIN digits one by one via the numpad buttons */
 async function enterPin(page: Page, pin: string) {
   for (const digit of pin) {
     await page.getByRole('button', { name: digit, exact: true }).click()
@@ -12,7 +11,6 @@ async function enterPin(page: Page, pin: string) {
   }
 }
 
-/** Log in with the correct PIN and wait for dashboard */
 async function loginWithPin(page: Page) {
   await page.goto('/auth/login')
   await enterPin(page, CORRECT_PIN)
@@ -60,7 +58,6 @@ test.describe('Dashboard layout', () => {
 
   test('renders Humanite brand in top bar', async ({ page }) => {
     await expect(page.getByText('Humanite').first()).toBeVisible()
-    await expect(page.getByText('Dashboard')).toBeVisible()
   })
 
   test('renders tier badge in header', async ({ page }) => {
@@ -68,13 +65,16 @@ test.describe('Dashboard layout', () => {
     await expect(badge.first()).toBeVisible()
   })
 
-  test('renders Clear and Sign out buttons', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /clear/i })).toBeVisible()
+  test('renders Sign out button', async ({ page }) => {
     await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible()
   })
 
-  test('shows ready placeholder when no job is running', async ({ page }) => {
-    await expect(page.getByText('Ready to humanize')).toBeVisible()
+  test('shows input placeholder when no text entered', async ({ page }) => {
+    await expect(page.getByPlaceholder(/paste your ai-generated text/i)).toBeVisible()
+  })
+
+  test('shows output placeholder when no humanization done', async ({ page }) => {
+    await expect(page.getByText(/your humanized text will appear here/i)).toBeVisible()
   })
 })
 
@@ -110,15 +110,5 @@ test.describe('Sign out', () => {
     await expect(page).toHaveURL('/dashboard')
     await page.getByRole('button', { name: /sign out/i }).click()
     await expect(page).toHaveURL(/\/auth\/login/)
-  })
-})
-
-// ── Clear button ──────────────────────────────────────────────────────────────
-
-test.describe('Clear button', () => {
-  test('clear button leaves ready state visible', async ({ page }) => {
-    await loginWithPin(page)
-    await page.getByRole('button', { name: /clear/i }).click()
-    await expect(page.getByText('Ready to humanize')).toBeVisible()
   })
 })
