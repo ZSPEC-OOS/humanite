@@ -1,94 +1,99 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUserStore } from '@/stores/userStore'
-import { authLogin, APIError } from '@/lib/api'
-import { jwtDecode } from 'jwt-decode'
 
-interface JWTClaims {
-  sub: string
-  tier: string
-  region: string
-  scopes: string[]
-}
+const CORRECT_PIN = '5522'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [pin, setPin] = useState('')
+  const [shake, setShake] = useState(false)
   const { setAuth } = useUserStore()
   const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await authLogin(email, password)
-      const claims = jwtDecode<JWTClaims>(data.access_token)
-      setAuth(data.access_token, claims.sub, claims.tier, claims.region, claims.scopes)
-      // Phase 2: refresh token in sessionStorage — replaced with httpOnly cookie in Phase 8
-      sessionStorage.setItem('__rt', data.refresh_token)
+  const submit = useCallback((entered: string) => {
+    if (entered === CORRECT_PIN) {
+      setAuth('dev-token', 'dev-user', 'pro', 'us-east-1', ['humanize', 'scan', 'export'])
       router.push('/dashboard')
-    } catch (e) {
-      setError(e instanceof APIError ? e.message : 'Login failed. Please try again.')
-    } finally {
-      setLoading(false)
+    } else {
+      setShake(true)
+      setTimeout(() => {
+        setShake(false)
+        setPin('')
+      }, 600)
     }
-  }
+  }, [setAuth, router])
+
+  const press = useCallback((digit: string) => {
+    setPin(prev => {
+      const next = prev.length < 4 ? prev + digit : prev
+      if (next.length === 4) setTimeout(() => submit(next), 50)
+      return next
+    })
+  }, [submit])
+
+  const del = useCallback(() => setPin(prev => prev.slice(0, -1)), [])
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key >= '0' && e.key <= '9') press(e.key)
+      else if (e.key === 'Backspace') del()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [press, del])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Sign in</h1>
-        <p className="text-sm text-gray-500 mb-6">to Humanite</p>
+      <div className="bg-white p-10 rounded-2xl shadow-md w-full max-w-sm flex flex-col items-center gap-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900">Humanite</h1>
+          <p className="text-sm text-gray-400 mt-1">Enter PIN to continue</p>
+        </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-            {error}
-          </div>
+        {/* PIN dots */}
+        <div className={`flex gap-4 ${shake ? 'animate-shake' : ''}`}>
+          {[0, 1, 2, 3].map(i => (
+            <div
+              key={i}
+              className={`w-4 h-4 rounded-full border-2 transition-colors duration-150 ${
+                pin.length > i ? 'bg-blue-600 border-blue-600' : 'bg-transparent border-gray-300'
+              }`}
+            />
+          ))}
+        </div>
+
+        {shake && (
+          <p className="text-sm text-red-500 -mt-4">Incorrect PIN</p>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Min. 8 characters"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-
-        <p className="mt-4 text-sm text-center text-gray-500">
-          No account?{' '}
-          <a href="/auth/register" className="text-blue-600 hover:underline">
-            Create one
-          </a>
-        </p>
+        {/* Numpad */}
+        <div className="grid grid-cols-3 gap-3 w-full">
+          {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((key, i) => {
+            if (key === '') return <div key={i} />
+            return (
+              <button
+                key={key}
+                onClick={() => key === '⌫' ? del() : press(key)}
+                className="h-14 rounded-xl text-lg font-medium bg-gray-100 hover:bg-gray-200 active:bg-gray-300 transition-colors select-none"
+              >
+                {key}
+              </button>
+            )
+          })}
+        </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-8px); }
+          80% { transform: translateX(8px); }
+        }
+        .animate-shake { animation: shake 0.5s ease-in-out; }
+      `}</style>
     </div>
   )
 }
