@@ -4,7 +4,7 @@ import { useEditorStore } from '@/stores/editorStore'
 
 const MonacoEditor = dynamic(
   () => import('@monaco-editor/react'),
-  { ssr: false, loading: () => <div className="h-full bg-gray-50 animate-pulse" /> },
+  { ssr: false, loading: () => <div className="h-full bg-white/3 animate-pulse" /> },
 )
 
 const MAX_CHARS = 10_000
@@ -15,35 +15,44 @@ export function TextInput() {
   const pct       = Math.min((text.length / MAX_CHARS) * 100, 100)
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header bar */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b border-gray-200 shrink-0">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          Input
-        </span>
+    <div className="flex flex-col h-full bg-dark-base">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-2
+                      bg-dark-card border-b border-white/8 shrink-0">
         <div className="flex items-center gap-2">
-          {/* Progress bar */}
-          <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+            <rect x="1" y="1" width="14" height="14" rx="3" stroke="#818cf8" strokeWidth="1.3"/>
+            <path d="M4 6h8M4 9h5" stroke="#818cf8" strokeWidth="1.3" strokeLinecap="round"/>
+          </svg>
+          <span className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+            AI-Generated Text
+          </span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <div className="w-20 h-1 bg-white/10 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                overLimit ? 'bg-red-500' : pct > 80 ? 'bg-amber-400' : 'bg-blue-500'
+                overLimit ? 'bg-red-500' : pct > 80 ? 'bg-amber-400' : 'bg-brand-violet'
               }`}
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className={`text-xs tabular-nums ${overLimit ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+          <span className={`text-xs tabular-nums ${
+            overLimit ? 'text-red-400 font-semibold' : 'text-white/30'
+          }`}>
             {text.length.toLocaleString()} / {MAX_CHARS.toLocaleString()}
           </span>
         </div>
       </div>
 
-      {/* Editor */}
+      {/* Monaco Editor */}
       <div className="flex-1 min-h-0">
         <MonacoEditor
           height="100%"
           defaultLanguage="plaintext"
           value={text}
           onChange={(v) => setText(v ?? '')}
+          theme="vs-dark"
           options={{
             wordWrap: 'on',
             minimap: { enabled: false },
@@ -55,9 +64,8 @@ export function TextInput() {
             overviewRulerLanes: 0,
             hideCursorInOverviewRuler: true,
             scrollbar: { vertical: 'auto', horizontal: 'hidden' },
-            padding: { top: 12, bottom: 12 },
+            padding: { top: 14, bottom: 14 },
             fontFamily: "'Inter', 'SF Pro Text', system-ui, sans-serif",
-            theme: 'vs',
           }}
         />
       </div>
