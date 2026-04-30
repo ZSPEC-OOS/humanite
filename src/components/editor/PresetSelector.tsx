@@ -3,10 +3,7 @@ import { useEffect, useState } from 'react'
 import { useHumanizeStore } from '@/stores/humanizeStore'
 import { useUserStore }     from '@/stores/userStore'
 import { apiListPresets, apiCreatePreset, apiDeletePreset, Preset, APIError } from '@/lib/api'
-
-const inputCls = `text-xs rounded-lg px-2.5 py-1.5 border
-  bg-white/5 border-white/10 text-white/70 placeholder-white/25
-  focus:outline-none focus:border-brand-violet/60 focus:ring-1 focus:ring-brand-violet/40`
+import { darkSelectCls, darkInputCls } from '@/components/ui/styles'
 
 export function PresetSelector() {
   const { isAuthenticated }               = useUserStore()
@@ -71,7 +68,7 @@ export function PresetSelector() {
             e.target.value = ''
           }}
           defaultValue=""
-          className={`${inputCls} max-w-[140px] appearance-none cursor-pointer`}
+          className={`${darkSelectCls} max-w-[140px]`}
           style={{ background: '#0f0f1c' }}
         >
           <option value="" disabled style={{ background: '#0f0f1c' }}>Load preset…</option>
@@ -90,7 +87,7 @@ export function PresetSelector() {
             onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
             placeholder="Preset name…"
             maxLength={100}
-            className={`${inputCls} w-28`}
+            className={`${darkInputCls} w-28`}
             autoFocus
           />
           <button

@@ -3,6 +3,7 @@ import { useHumanizeStore } from '@/stores/humanizeStore'
 import { useScanStore } from '@/stores/scanStore'
 import { useEditorStore } from '@/stores/editorStore'
 import { Spinner } from '@/components/ui/Spinner'
+import { darkSelectCls } from '@/components/ui/styles'
 
 const TONES   = ['balanced', 'formal', 'casual', 'academic', 'professional']
 const DOMAINS = ['general', 'academic', 'business', 'technical', 'medical', 'legal']
@@ -16,11 +17,6 @@ function intensityLabel(v: number): string {
   const nearest = keys.reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a)
   return INTENSITY_LABELS[nearest] ?? ''
 }
-
-const selectCls = `text-xs rounded-lg px-2.5 py-1.5 border
-  bg-white/5 border-white/10 text-white/70
-  focus:outline-none focus:border-brand-violet/60 focus:ring-1 focus:ring-brand-violet/40
-  appearance-none cursor-pointer`
 
 export function ControlPanel() {
   const { settings, setSettings, humanize, status: hStatus } = useHumanizeStore()
@@ -58,7 +54,7 @@ export function ControlPanel() {
         <label className="text-xs font-medium text-white/40">Tone</label>
         <select value={settings.tone}
           onChange={(e) => setSettings({ tone: e.target.value })}
-          className={selectCls}>
+          className={darkSelectCls}>
           {TONES.map(t => (
             <option key={t} value={t} style={{ background: '#0f0f1c' }}>
               {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -72,7 +68,7 @@ export function ControlPanel() {
         <label className="text-xs font-medium text-white/40">Domain</label>
         <select value={settings.domain}
           onChange={(e) => setSettings({ domain: e.target.value })}
-          className={selectCls}>
+          className={darkSelectCls}>
           {DOMAINS.map(d => (
             <option key={d} value={d} style={{ background: '#0f0f1c' }}>
               {d.charAt(0).toUpperCase() + d.slice(1)}
