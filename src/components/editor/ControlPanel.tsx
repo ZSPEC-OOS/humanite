@@ -2,6 +2,7 @@
 import { useHumanizeStore } from '@/stores/humanizeStore'
 import { useScanStore } from '@/stores/scanStore'
 import { useEditorStore } from '@/stores/editorStore'
+import { Spinner } from '@/components/ui/Spinner'
 
 const TONES   = ['balanced', 'formal', 'casual', 'academic', 'professional']
 const DOMAINS = ['general', 'academic', 'business', 'technical', 'medical', 'legal']
@@ -106,7 +107,7 @@ export function ControlPanel() {
         >
           {hLoading ? (
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <Spinner className="w-3 h-3 border-white" />
               Humanizing…
             </span>
           ) : 'Humanize'}
@@ -123,7 +124,7 @@ export function ControlPanel() {
         >
           {sLoading ? (
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 border-2 border-white/60 border-t-transparent rounded-full animate-spin" />
+              <Spinner className="w-3 h-3 border-white/60" />
               Scanning…
             </span>
           ) : 'Scan'}
