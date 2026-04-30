@@ -35,33 +35,43 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white overflow-hidden">
+    <div className="h-screen flex flex-col bg-dark-base overflow-hidden">
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
-      <header className="flex items-center px-4 py-2.5 bg-white border-b border-gray-200 shrink-0 shadow-sm">
+      <header className="flex items-center px-5 py-3 bg-dark-card border-b border-white/8 shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-base font-bold text-gray-900">Humanite</span>
-          <span className="text-xs text-gray-400">/</span>
-          <span className="text-xs text-gray-500">Dashboard</span>
+          {/* Logo mark */}
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+            <path d="M9 1.5l2 5L16.5 9l-5.5 2.5L9 16.5 6.5 11.5 1.5 9l5-2L9 1.5z"
+              fill="url(#logo-g)" />
+            <defs>
+              <linearGradient id="logo-g" x1="1.5" y1="1.5" x2="16.5" y2="16.5">
+                <stop stopColor="#a855f7" />
+                <stop offset="1" stopColor="#ec4899" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <span className="text-sm font-bold text-gradient">Humanite</span>
+          <span className="text-white/20 text-xs">/</span>
+          <span className="text-xs text-white/40">Dashboard</span>
         </div>
 
         <div className="flex items-center gap-3 ml-auto">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 uppercase tracking-wide">
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full
+                           bg-brand-purple/20 text-brand-violet border border-brand-purple/30
+                           uppercase tracking-wide">
             {tier ?? 'free'}
           </span>
           <PresetSelector />
           <button
             onClick={handleClear}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-xs text-white/30 hover:text-white/70 transition-colors"
           >
             Clear
           </button>
           <button
-            onClick={() => {
-              clearAuth()
-              router.push('/auth/login')
-            }}
-            className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+            onClick={() => { clearAuth(); router.push('/auth/login') }}
+            className="text-xs text-white/30 hover:text-white/70 transition-colors"
           >
             Sign out
           </button>
@@ -74,15 +84,10 @@ export default function Dashboard() {
       {/* ── Main area ───────────────────────────────────────────────────── */}
       <div className="flex-1 flex min-h-0">
 
-        {/* Text input + output — takes remaining width unless scan panel is open */}
-        <div className={`flex flex-col min-h-0 transition-all ${showScanPanel ? 'w-2/3' : 'w-full'} border-r border-gray-200`}>
-
-          {/* Text input: fixed height third of available space */}
-          <div className="h-1/3 border-b border-gray-200 shrink-0">
+        <div className={`flex flex-col min-h-0 transition-all ${showScanPanel ? 'w-2/3' : 'w-full'} border-r border-white/8`}>
+          <div className="h-1/3 border-b border-white/8 shrink-0">
             <TextInput />
           </div>
-
-          {/* Output / split view */}
           <div className="flex-1 min-h-0">
             {showOutputPanel ? (
               <div className="flex flex-col h-full">
@@ -91,21 +96,21 @@ export default function Dashboard() {
                 </div>
                 {response?.output && (
                   <div className="shrink-0 flex items-center justify-between
-                                  px-3 py-2 border-t border-gray-200 bg-gray-50">
+                                  px-3 py-2 border-t border-white/8 bg-dark-card">
                     <ExportMenu />
                   </div>
                 )}
               </div>
             ) : (
               <div className="h-full flex items-center justify-center">
-                <div className="text-center text-gray-400 max-w-xs">
-                  <div className="text-3xl mb-3">✦</div>
-                  <p className="text-sm font-medium text-gray-500">Ready</p>
-                  <p className="text-xs mt-1">
+                <div className="text-center max-w-xs">
+                  <div className="text-3xl mb-3 opacity-30">✦</div>
+                  <p className="text-sm font-medium text-white/40">Ready</p>
+                  <p className="text-xs mt-1 text-white/30">
                     Paste your AI-generated text above and click{' '}
-                    <span className="font-medium text-blue-600">Humanize</span>{' '}
+                    <span className="font-medium text-brand-violet">Humanize</span>{' '}
                     or{' '}
-                    <span className="font-medium text-purple-600">Scan</span>
+                    <span className="font-medium text-brand-blue">Scan</span>
                   </p>
                 </div>
               </div>
@@ -113,16 +118,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Scanner panel — slides in when a scan is run */}
         {showScanPanel && (
-          <div className="w-1/3 flex flex-col min-h-0 bg-white">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-purple-50 shrink-0">
-              <span className="text-xs font-semibold text-purple-700 uppercase tracking-wide">
+          <div className="w-1/3 flex flex-col min-h-0 bg-dark-base">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/8
+                            bg-brand-purple/10 shrink-0">
+              <span className="text-xs font-semibold text-brand-violet uppercase tracking-wide">
                 Scanner Report
               </span>
               <button
                 onClick={resetS}
-                className="text-xs text-purple-400 hover:text-purple-600 transition-colors"
+                className="text-xs text-brand-violet/60 hover:text-brand-violet transition-colors"
               >
                 ✕ Close
               </button>
