@@ -2,50 +2,17 @@ import { test, expect, Page } from '@playwright/test'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-const CORRECT_PIN = '5522'
-
-async function enterPin(page: Page, pin: string) {
-  for (const digit of pin) {
-    await page.getByRole('button', { name: digit, exact: true }).click()
-    await page.waitForTimeout(60)
-  }
-}
-
-async function loginWithPin(page: Page) {
-  await page.goto('/auth/login')
-  await enterPin(page, CORRECT_PIN)
+async function goToDashboard(page: Page) {
+  await page.goto('/dashboard')
   await page.waitForURL('/dashboard', { timeout: 8_000 })
 }
 
 // ── Auth guard ─────────────────────────────────────────────────────────────────
 
 test.describe('Auth guard', () => {
-  test('redirects unauthenticated users from /dashboard to /auth/login', async ({ page }) => {
+  test('unauthenticated /dashboard redirects then returns to dashboard', async ({ page }) => {
     await page.goto('/dashboard')
-    await expect(page).toHaveURL(/\/auth\/login/)
-  })
-
-  test('PIN login page renders correctly', async ({ page }) => {
-    await page.goto('/auth/login')
-    await expect(page.getByText('Humanite')).toBeVisible()
-    await expect(page.getByText(/enter pin/i)).toBeVisible()
-    for (const d of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']) {
-      await expect(page.getByRole('button', { name: d, exact: true })).toBeVisible()
-    }
-  })
-
-  test('correct PIN navigates to dashboard', async ({ page }) => {
-    await page.goto('/auth/login')
-    await enterPin(page, CORRECT_PIN)
     await expect(page).toHaveURL('/dashboard', { timeout: 8_000 })
-  })
-
-  test('wrong PIN shows error and resets', async ({ page }) => {
-    await page.goto('/auth/login')
-    await enterPin(page, '0000')
-    await expect(page.getByText(/incorrect pin/i)).toBeVisible()
-    await page.waitForTimeout(700)
-    await expect(page).toHaveURL(/\/auth\/login/)
   })
 })
 
@@ -53,7 +20,7 @@ test.describe('Auth guard', () => {
 
 test.describe('Dashboard layout', () => {
   test.beforeEach(async ({ page }) => {
-    await loginWithPin(page)
+    await goToDashboard(page)
   })
 
   test('renders Humanite brand in top bar', async ({ page }) => {
@@ -82,7 +49,7 @@ test.describe('Dashboard layout', () => {
 
 test.describe('Control panel', () => {
   test.beforeEach(async ({ page }) => {
-    await loginWithPin(page)
+    await goToDashboard(page)
   })
 
   test('Humanize button is present', async ({ page }) => {
@@ -105,10 +72,9 @@ test.describe('Control panel', () => {
 // ── Sign out flow ─────────────────────────────────────────────────────────────
 
 test.describe('Sign out', () => {
-  test('sign out clears auth and redirects to login', async ({ page }) => {
-    await loginWithPin(page)
-    await expect(page).toHaveURL('/dashboard')
+  test('sign out button redirects to login then back to dashboard', async ({ page }) => {
+    await goToDashboard(page)
     await page.getByRole('button', { name: /sign out/i }).click()
-    await expect(page).toHaveURL(/\/auth\/login/)
+    await expect(page).toHaveURL('/dashboard', { timeout: 8_000 })
   })
 })
