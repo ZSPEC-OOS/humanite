@@ -1,146 +1,108 @@
 'use client'
 import { useHumanizeStore } from '@/stores/humanizeStore'
-import { useScanStore } from '@/stores/scanStore'
-import { useEditorStore } from '@/stores/editorStore'
-import { Spinner } from '@/components/ui/Spinner'
-import { darkSelectCls } from '@/components/ui/styles'
 
 const TONES   = ['balanced', 'formal', 'casual', 'academic', 'professional']
 const DOMAINS = ['general', 'academic', 'business', 'technical', 'medical', 'legal']
 
-const INTENSITY_LABELS: Record<number, string> = {
-  1: 'Minimal', 3: 'Light', 5: 'Moderate', 7: 'Heavy', 10: 'Aggressive',
-}
+const INTENSITY_TICKS = [
+  { v: 1,  label: 'Minimal'    },
+  { v: 2,  label: 'Light'      },
+  { v: 6,  label: 'Moderate'   },
+  { v: 7,  label: 'Heavy'      },
+  { v: 10, label: 'Aggressive' },
+]
 
-function intensityLabel(v: number): string {
-  const keys = [1, 3, 5, 7, 10]
-  const nearest = keys.reduce((a, b) => Math.abs(b - v) < Math.abs(a - v) ? b : a)
-  return INTENSITY_LABELS[nearest] ?? ''
-}
+const selectCls = `text-sm rounded-xl px-4 py-2 bg-white/5 border border-white/10 text-white/70
+                   focus:outline-none focus:border-violet-500/60 appearance-none cursor-pointer
+                   min-w-[130px]`
 
 export function ControlPanel() {
-  const { settings, setSettings, humanize, status: hStatus } = useHumanizeStore()
-  const { scan, status: sStatus }                             = useScanStore()
-  const { text }                                              = useEditorStore()
-
-  const canSubmit = text.trim().length >= 20
-  const hLoading  = hStatus === 'loading'
-  const sLoading  = sStatus === 'loading'
+  const { settings, setSettings } = useHumanizeStore()
 
   return (
-    <div className="bg-dark-card border-b border-white/8 shrink-0">
-
-      {/* ── Settings row ── */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2">
+    <div className="bg-[#0a0a18] border border-white/8 rounded-2xl px-5 py-4 shrink-0">
+      <div className="flex flex-wrap items-start gap-x-8 gap-y-5">
 
         {/* Intensity */}
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-white/40 whitespace-nowrap">Intensity</label>
+        <div className="flex-1 min-w-[180px]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-white/70">Intensity</span>
+            <span className="text-xs font-bold text-violet-400">{settings.intensity}</span>
+          </div>
           <input
             type="range" min={1} max={10} step={1}
             value={settings.intensity}
-            onChange={(e) => setSettings({ intensity: Number(e.target.value) })}
-            className="w-20 sm:w-24 h-1 rounded-full appearance-none cursor-pointer bg-white/10"
+            onChange={e => setSettings({ intensity: Number(e.target.value) })}
+            className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
             style={{ accentColor: '#a855f7' }}
           />
-          <span className="text-xs font-semibold text-brand-violet w-[80px]">
-            {settings.intensity} — {intensityLabel(settings.intensity)}
-          </span>
+          <div className="flex justify-between mt-2">
+            {INTENSITY_TICKS.map(t => (
+              <div key={t.v} className="flex flex-col items-center gap-0.5">
+                <span className="text-[10px] text-white/35 font-medium tabular-nums">{t.v}</span>
+                <span className="text-[9px] text-white/20">{t.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="w-px h-4 bg-white/10 hidden sm:block" />
+        <div className="w-px self-stretch bg-white/8 hidden sm:block" />
 
         {/* Tone */}
-        <div className="flex items-center gap-1.5">
-          <label className="text-xs font-medium text-white/40">Tone</label>
-          <select value={settings.tone}
-            onChange={(e) => setSettings({ tone: e.target.value })}
-            className={darkSelectCls}>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-white/40 uppercase tracking-wider">Tone</span>
+          <select
+            value={settings.tone}
+            onChange={e => setSettings({ tone: e.target.value })}
+            className={selectCls}
+          >
             {TONES.map(t => (
-              <option key={t} value={t} style={{ background: '#0f0f1c' }}>
+              <option key={t} value={t} style={{ background: '#0a0a18' }}>
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </option>
             ))}
           </select>
         </div>
 
+        <div className="w-px self-stretch bg-white/8 hidden sm:block" />
+
         {/* Domain */}
-        <div className="flex items-center gap-1.5">
-          <label className="text-xs font-medium text-white/40">Domain</label>
-          <select value={settings.domain}
-            onChange={(e) => setSettings({ domain: e.target.value })}
-            className={darkSelectCls}>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-white/40 uppercase tracking-wider">Domain</span>
+          <select
+            value={settings.domain}
+            onChange={e => setSettings({ domain: e.target.value })}
+            className={selectCls}
+          >
             {DOMAINS.map(d => (
-              <option key={d} value={d} style={{ background: '#0f0f1c' }}>
+              <option key={d} value={d} style={{ background: '#0a0a18' }}>
                 {d.charAt(0).toUpperCase() + d.slice(1)}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Citations — hidden on very small screens to keep row clean */}
-        <label className="hidden sm:flex items-center gap-2 text-xs text-white/40 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={settings.preserve_citations}
-            onChange={(e) => setSettings({ preserve_citations: e.target.checked })}
-            className="w-3.5 h-3.5 rounded border-white/20 bg-white/5"
-            style={{ accentColor: '#a855f7' }}
-          />
-          Preserve citations
-        </label>
-      </div>
+        <div className="w-px self-stretch bg-white/8 hidden sm:block" />
 
-      {/* ── Action buttons row ── */}
-      <div className="flex gap-2 px-4 pb-3">
-        <button
-          onClick={() => humanize(text)}
-          disabled={!canSubmit || hLoading}
-          className="flex-1 sm:flex-none sm:px-5 py-2 text-sm font-semibold rounded-xl
-                     bg-gradient-to-r from-violet-600 via-purple-500 to-pink-500
-                     text-white hover:opacity-90
-                     disabled:opacity-30 disabled:cursor-not-allowed
-                     transition-opacity shadow-md shadow-violet-900/30
-                     focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-        >
-          {hLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <Spinner className="w-3.5 h-3.5 border-white" />
-              Humanizing…
+        {/* Preserve citations */}
+        <label className="flex flex-col gap-2 cursor-pointer select-none">
+          <span className="text-xs font-medium text-white/40 uppercase tracking-wider">
+            Preserve citations
+          </span>
+          <div className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              checked={settings.preserve_citations}
+              onChange={e => setSettings({ preserve_citations: e.target.checked })}
+              className="w-5 h-5 rounded cursor-pointer"
+              style={{ accentColor: '#a855f7' }}
+            />
+            <span className="text-sm text-white/50">
+              {settings.preserve_citations ? 'On' : 'Off'}
             </span>
-          ) : 'Humanize'}
-        </button>
-
-        <button
-          onClick={() => scan(text)}
-          disabled={!canSubmit || sLoading}
-          className="flex-1 sm:flex-none sm:px-5 py-2 text-sm font-semibold rounded-xl
-                     bg-white/8 border border-white/15 text-white/80
-                     hover:bg-white/12 hover:border-white/25
-                     disabled:opacity-30 disabled:cursor-not-allowed
-                     transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
-        >
-          {sLoading ? (
-            <span className="flex items-center justify-center gap-2">
-              <Spinner className="w-3.5 h-3.5 border-white/60" />
-              Scanning…
-            </span>
-          ) : 'Scan'}
-        </button>
-
-        {/* Citations checkbox on mobile — shown as icon button below the slider row */}
-        <label className="sm:hidden flex items-center gap-1.5 text-xs text-white/40
-                          cursor-pointer select-none border border-white/10 rounded-xl
-                          px-3 whitespace-nowrap bg-white/5">
-          <input
-            type="checkbox"
-            checked={settings.preserve_citations}
-            onChange={(e) => setSettings({ preserve_citations: e.target.checked })}
-            className="w-3.5 h-3.5"
-            style={{ accentColor: '#a855f7' }}
-          />
-          Citations
+          </div>
         </label>
+
       </div>
     </div>
   )
