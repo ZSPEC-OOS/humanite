@@ -79,7 +79,7 @@ export function ApiConfigModal({ open, onClose }: Props) {
         {/* body */}
         <div className="px-5 py-5 space-y-4">
           <p className="text-xs text-white/35 leading-relaxed">
-            Override the server's default model. Leave blank to use the server default.
+            Override the server&apos;s default model. Leave blank to use the server default.
             Your API key is stored locally in your browser only.
           </p>
 
