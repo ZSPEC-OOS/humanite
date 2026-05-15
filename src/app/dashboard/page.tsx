@@ -5,11 +5,13 @@ import { useUserStore }     from '@/stores/userStore'
 import { useHumanizeStore } from '@/stores/humanizeStore'
 import { useScanStore }     from '@/stores/scanStore'
 import { useEditorStore }   from '@/stores/editorStore'
+import { useApiConfigStore } from '@/stores/apiConfigStore'
 import { ControlPanel }     from '@/components/editor/ControlPanel'
 import { PresetSelector }   from '@/components/editor/PresetSelector'
 import { ExportMenu }       from '@/components/output/ExportMenu'
 import { ScanReport }       from '@/components/scanner/ScanReport'
 import { Spinner }          from '@/components/ui/Spinner'
+import { ApiConfigModal }   from '@/components/settings/ApiConfigModal'
 
 const MAX_CHARS = 10_000
 
@@ -40,10 +42,12 @@ export default function Dashboard() {
   const { humanize, status: hStatus, reset: resetH, response, error } = useHumanizeStore()
   const { scan, status: sStatus, reset: resetS, response: scanResp }  = useScanStore()
   const { text, setText, clearText }                                   = useEditorStore()
+  const { hasCustomConfig, config: apiConfig }                         = useApiConfigStore()
   const router = useRouter()
-  const [mobileTab, setMobileTab] = useState<MobileTab>('input')
-  const [menuOpen, setMenuOpen]   = useState(false)
-  const [copied, setCopied]       = useState(false)
+  const [mobileTab, setMobileTab]     = useState<MobileTab>('input')
+  const [menuOpen, setMenuOpen]       = useState(false)
+  const [copied, setCopied]           = useState(false)
+  const [apiConfigOpen, setApiConfigOpen] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated()) router.replace('/auth/login')
@@ -160,6 +164,8 @@ export default function Dashboard() {
 
   return (
     <>
+    <ApiConfigModal open={apiConfigOpen} onClose={() => setApiConfigOpen(false)} />
+
     {/* ══════════════════════════════════════════════════════════════
         DESKTOP  (md+) — card with gradient border, unchanged
         ══════════════════════════════════════════════════════════════ */}
@@ -189,6 +195,22 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <PresetSelector />
+            <button
+              onClick={() => setApiConfigOpen(true)}
+              title={hasCustomConfig() ? `Using: ${apiConfig.nickname || apiConfig.modelId}` : 'Configure AI model'}
+              className="relative flex items-center justify-center w-7 h-7 rounded-lg
+                         text-white/30 hover:text-white/70 hover:bg-white/6
+                         transition-colors focus:outline-none"
+            >
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden>
+                <circle cx="10" cy="10" r="3" stroke="currentColor" strokeWidth="1.4"/>
+                <path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"
+                  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+              {hasCustomConfig() && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-400" />
+              )}
+            </button>
             <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full
                              border border-brand-purple/40 bg-brand-purple/15 text-brand-violet">
               ✦ {(tier ?? 'free').charAt(0).toUpperCase() + (tier ?? 'free').slice(1)} Plan
@@ -364,6 +386,38 @@ export default function Dashboard() {
           <div className="px-5 py-4 border-b border-white/6">
             <p className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">Presets</p>
             <PresetSelector />
+          </div>
+
+          {/* AI Model Config */}
+          <div className="px-5 py-4 border-b border-white/6">
+            <p className="text-[11px] font-semibold text-white/30 uppercase tracking-wider mb-3">AI Model</p>
+            <button
+              onClick={() => { setMenuOpen(false); setApiConfigOpen(true) }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5
+                         rounded-xl bg-white/5 border border-white/8
+                         hover:bg-white/8 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2.5">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden>
+                  <circle cx="10" cy="10" r="3" stroke="#a855f7" strokeWidth="1.4"/>
+                  <path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.22 3.22l1.42 1.42M15.36 15.36l1.42 1.42M3.22 16.78l1.42-1.42M15.36 4.64l1.42-1.42"
+                    stroke="#a855f7" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+                <span className="text-sm text-white/60">
+                  {hasCustomConfig()
+                    ? (apiConfig.nickname || apiConfig.modelId)
+                    : 'Configure model'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {hasCustomConfig() && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                )}
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden>
+                  <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+            </button>
           </div>
 
           {/* Settings */}

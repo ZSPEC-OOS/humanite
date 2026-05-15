@@ -1,4 +1,5 @@
 import { useUserStore } from '@/stores/userStore'
+import { useApiConfigStore } from '@/stores/apiConfigStore'
 
 // In production this is empty string (same-origin). Set NEXT_PUBLIC_API_URL only
 // when pointing at an external backend (legacy microservices deployment).
@@ -121,9 +122,18 @@ export async function apiHumanize(
   settings: HumanizeSettings,
   asyncMode = false,
 ): Promise<HumanizeAPIResponse> {
+  const { config, hasCustomConfig } = useApiConfigStore.getState()
+  const body: Record<string, unknown> = { text, settings, async_mode: asyncMode }
+  if (hasCustomConfig()) {
+    body.api_config = {
+      api_key: config.apiKey,
+      model_id: config.modelId,
+      ...(config.baseUrl.trim() ? { base_url: config.baseUrl.trim() } : {}),
+    }
+  }
   return apiFetch<HumanizeAPIResponse>('/v1/humanize', {
     method: 'POST',
-    body: JSON.stringify({ text, settings, async_mode: asyncMode }),
+    body: JSON.stringify(body),
   })
 }
 
@@ -158,9 +168,18 @@ export async function apiScan(
   text: string,
   mode: 'quick' | 'standard' = 'standard',
 ): Promise<ScanAPIResponse> {
+  const { config, hasCustomConfig } = useApiConfigStore.getState()
+  const body: Record<string, unknown> = { text, mode }
+  if (hasCustomConfig()) {
+    body.api_config = {
+      api_key: config.apiKey,
+      model_id: config.modelId,
+      ...(config.baseUrl.trim() ? { base_url: config.baseUrl.trim() } : {}),
+    }
+  }
   return apiFetch<ScanAPIResponse>('/v1/scan', {
     method: 'POST',
-    body: JSON.stringify({ text, mode }),
+    body: JSON.stringify(body),
   })
 }
 

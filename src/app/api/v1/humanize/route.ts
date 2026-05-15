@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
     text?: string
     settings?: { intensity?: number; tone?: string; domain?: string; preserve_citations?: boolean }
     async_mode?: boolean
+    api_config?: { api_key?: string; model_id?: string; base_url?: string }
   }
   try {
     body = await req.json()
@@ -151,15 +152,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const apiCfg = body.api_config
     const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      baseURL: process.env.OPENAI_BASE_URL,
+      apiKey: apiCfg?.api_key || process.env.OPENAI_API_KEY,
+      baseURL: apiCfg?.base_url || process.env.OPENAI_BASE_URL,
     })
+    const model = apiCfg?.model_id || process.env.OPENAI_MODEL || 'gpt-4o-mini'
     const userPrompt = buildUserPrompt(prep.sanitized_text, prep.fact_locks, intensity, tone, domain)
     const start = Date.now()
 
     const completion = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
+      model,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
@@ -169,12 +172,12 @@ export async function POST(req: NextRequest) {
     })
 
     const rewritten = completion.choices[0]?.message?.content?.trim() ?? text
-    const model = completion.model
+    const modelUsed = completion.model
 
     const { text: postText, substitutions } =
       intensity >= 4 ? postprocess(rewritten, prep.fact_locks) : { text: rewritten, substitutions: 0 }
 
-    const watermark = generateWatermark(jobId, model)
+    const watermark = generateWatermark(jobId, modelUsed)
     const durationMs = Date.now() - start
 
     await db().collection('jobs').doc(jobId).update({ status: 'completed', completedAt: new Date(), updatedAt: new Date() })
@@ -203,7 +206,7 @@ export async function POST(req: NextRequest) {
         ai_signal_strength: 0,
       },
       processing_metadata: {
-        model_used: model,
+        model_used: modelUsed,
         provider_used: 'openai',
         processing_duration_ms: durationMs,
       },
