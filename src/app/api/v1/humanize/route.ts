@@ -6,6 +6,9 @@ import { requireAuth, isAuthFailure } from '@/lib/require-auth'
 import { preprocess } from '@/lib/preprocess'
 import { postprocess } from '@/lib/postprocess'
 import { generateWatermark } from '@/lib/watermark'
+import { runQualityGates, QualityScores } from '@/lib/qualityGates'
+
+const MAX_GATE_RETRIES = 2
 
 // Humanize runs synchronously against the Vercel function's request timeout —
 // there is no job queue behind the "pending" status yet, so the cap below IS
@@ -74,6 +77,19 @@ function maxTokensForIntensity(intensity: number): number {
   if (intensity <= 3) return 2048
   if (intensity <= 6) return 3072
   return 4096
+}
+
+function buildRetryAddendum(gate: QualityScores): string {
+  switch (gate.failed_gate) {
+    case 'entity_overlap':
+      return `## PREVIOUS ATTEMPT FAILED VALIDATION — FIX THIS\nYour previous rewrite dropped or altered these required exact-match strings. Include every one of them verbatim this time: ${gate.missing_facts.map(f => `"${f}"`).join(', ')}`
+    case 'entailment':
+      return `## PREVIOUS ATTEMPT FAILED VALIDATION — FIX THIS\nYour previous rewrite changed the meaning of the source. Specific issues found: ${gate.entailment_issues.join('; ') || 'unspecified meaning drift'}. Do not add, remove, or alter any factual claim — rewrite style only.`
+    case 'semantic_similarity':
+      return `## PREVIOUS ATTEMPT FAILED VALIDATION — FIX THIS\nYour previous rewrite deviated too far from the source content. Keep the same content, structure, and claims — vary only the prose style.`
+    default:
+      return ''
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -151,24 +167,53 @@ export async function POST(req: NextRequest) {
       baseURL: apiCfg?.base_url || process.env.OPENAI_BASE_URL,
     })
     const model = apiCfg?.model_id || process.env.OPENAI_MODEL || 'gpt-4o-mini'
-    const userPrompt = buildUserPrompt(prep.sanitized_text, prep.fact_locks, intensity, tone, domain)
+    const basePrompt = buildUserPrompt(prep.sanitized_text, prep.fact_locks, intensity, tone, domain)
     const start = Date.now()
 
-    const completion = await client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-      max_tokens: maxTokensForIntensity(intensity),
-      temperature: 0.7,
-    })
+    let userPrompt = basePrompt
+    let postText = text
+    let substitutions = 0
+    let modelUsed = model
+    let gateResult: QualityScores | null = null
+    let gatesUnavailable = false
+    let retryCount = 0
 
-    const rewritten = completion.choices[0]?.message?.content?.trim() ?? text
-    const modelUsed = completion.model
+    for (let attempt = 0; attempt <= MAX_GATE_RETRIES; attempt++) {
+      const completion = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt },
+        ],
+        max_tokens: maxTokensForIntensity(intensity),
+        temperature: 0.7,
+      })
 
-    const { text: postText, substitutions } =
-      intensity >= 4 ? postprocess(rewritten, prep.fact_locks) : { text: rewritten, substitutions: 0 }
+      const rewritten = completion.choices[0]?.message?.content?.trim() ?? text
+      modelUsed = completion.model
+
+      const post = intensity >= 4 ? postprocess(rewritten, prep.fact_locks) : { text: rewritten, substitutions: 0 }
+      postText = post.text
+      substitutions = post.substitutions
+      retryCount = attempt
+
+      // Gate failures (e.g. a BYO base_url that doesn't support the
+      // embeddings endpoint or JSON response_format) must not sink an
+      // otherwise-successful rewrite — degrade to "unscored", don't 502.
+      try {
+        gateResult = await runQualityGates(client, model, prep.sanitized_text, postText, prep.fact_locks)
+      } catch (gateErr) {
+        console.warn('Quality gates unavailable, shipping unscored output', {
+          jobId,
+          type: gateErr instanceof Error ? gateErr.constructor.name : typeof gateErr,
+        })
+        gatesUnavailable = true
+        break
+      }
+
+      if (gateResult.passed || attempt === MAX_GATE_RETRIES) break
+      userPrompt = `${basePrompt}\n\n${buildRetryAddendum(gateResult)}`
+    }
 
     const watermark = generateWatermark(jobId, modelUsed)
     const durationMs = Date.now() - start
@@ -185,16 +230,27 @@ export async function POST(req: NextRequest) {
       status: 'completed',
       output: {
         text: postText,
-        quality_scores: {
-          // No semantic-fidelity gate runs yet (BERTScore / NLI / entity-overlap) —
-          // report unknown rather than a fabricated pass. See Phase 1 of the roadmap.
-          bertscore_f1: null,
-          nli_entailment: null,
-          entity_overlap: null,
-          passed: null,
-          failed_gate: null,
-          retry_count: 0,
-        },
+        quality_scores: gatesUnavailable
+          ? {
+              bertscore_f1: null,
+              nli_entailment: null,
+              entity_overlap: null,
+              passed: null,
+              failed_gate: null,
+              retry_count: retryCount,
+              missing_facts: [],
+              entailment_issues: [],
+            }
+          : {
+              bertscore_f1: gateResult!.bertscore_f1,
+              nli_entailment: gateResult!.nli_entailment,
+              entity_overlap: gateResult!.entity_overlap,
+              passed: gateResult!.passed,
+              failed_gate: gateResult!.failed_gate,
+              retry_count: retryCount,
+              missing_facts: gateResult!.missing_facts,
+              entailment_issues: gateResult!.entailment_issues,
+            },
         watermark,
         postprocessor_substitutions: substitutions,
       },
@@ -211,7 +267,9 @@ export async function POST(req: NextRequest) {
         processing_duration_ms: durationMs,
       },
       result_url: null,
-      warning: null,
+      warning: gatesUnavailable
+        ? 'Quality gates could not run against the configured model endpoint — output is unscored.'
+        : null,
     })
   } catch (err) {
     await db().collection('jobs').doc(jobId).update({ status: 'failed', errorCode: 'INTERNAL_PIPELINE_ERROR', updatedAt: new Date() })
