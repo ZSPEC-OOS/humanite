@@ -347,9 +347,16 @@ export default function Dashboard() {
                         output.quality_scores.passed === true ? 'text-green-400'
                         : output.quality_scores.passed === false ? 'text-red-400'
                         : 'text-white/40'
-                      }`}>
+                      }`}
+                        title={
+                          output.quality_scores.passed === false
+                            ? [...output.quality_scores.missing_facts.map(f => `Dropped: "${f}"`),
+                               ...output.quality_scores.entailment_issues].join('\n') || undefined
+                            : undefined
+                        }
+                      >
                         {output.quality_scores.passed === true ? 'Natural'
-                          : output.quality_scores.passed === false ? 'Review'
+                          : output.quality_scores.passed === false ? `Review (${output.quality_scores.failed_gate})`
                           : 'Not yet scored'}
                       </p>
                     </div>

@@ -87,14 +87,16 @@ export interface HumanizeSettings {
 export interface HumanizeOutput {
   text: string
   quality_scores: {
-    // null until the semantic-fidelity gates (Phase 1) are wired in —
-    // never report a fabricated pass/score.
+    // null only if the gates couldn't run at all against a custom model
+    // endpoint (see `warning`) — otherwise these are real, measured scores.
     bertscore_f1: number | null
     nli_entailment: number | null
     entity_overlap: number | null
     passed: boolean | null
     failed_gate: string | null
     retry_count: number
+    missing_facts: string[]
+    entailment_issues: string[]
   }
   watermark: {
     type: string
