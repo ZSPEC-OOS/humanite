@@ -25,5 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: { jobId: strin
     completed_at: job.completedAt ? job.completedAt.toDate().toISOString() : null,
     result_url: job.resultUrl ?? null,
     error_code: job.errorCode ?? null,
+    output: job.result?.output ?? null,
+    processing_metadata: job.result?.processing_metadata ?? null,
   })
 }
