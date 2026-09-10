@@ -116,7 +116,13 @@ export function SplitView({ mobileOutputOnly = false }: { mobileOutputOnly?: boo
 
         {output && (
           <div className="flex items-center gap-2">
-            {output.quality_scores.passed ? (
+            {output.quality_scores.bertscore_f1 == null ? (
+              <span className="flex items-center gap-1.5 text-xs text-white/40
+                               bg-white/5 border border-white/10 rounded-full px-2.5 py-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+                Not yet scored
+              </span>
+            ) : output.quality_scores.passed ? (
               <span className="flex items-center gap-1.5 text-xs text-green-400
                                bg-green-500/10 border border-green-500/25 rounded-full px-2.5 py-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400" />

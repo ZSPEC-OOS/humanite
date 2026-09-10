@@ -1,6 +1,9 @@
 import { createHash } from 'crypto'
 
-const VERIFICATION_BASE = 'https://api.humanite.ai/v1/verify'
+// Points at this deployment's own /v1/verify route (see
+// src/app/api/v1/verify/[fingerprint]/route.ts) — set NEXT_PUBLIC_APP_URL to
+// the app's real deployed origin so exported documents carry a working link.
+const VERIFICATION_BASE = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/api/v1/verify`
 
 export function generateWatermark(jobId: string, model: string) {
   const salt = process.env.WATERMARK_SECRET_SALT ?? 'dev-salt-replace-in-production'
