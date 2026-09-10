@@ -204,6 +204,14 @@ export interface JobStatus {
   completed_at: string | null
   result_url: string | null
   error_code: string | null
+  // Populated once a background (async) humanize job completes.
+  output: HumanizeOutput | null
+  processing_metadata: {
+    model_used: string
+    provider_used: string
+    processing_duration_ms: number
+    chunk_count?: number
+  } | null
 }
 
 export async function apiGetJob(jobId: string): Promise<JobStatus> {

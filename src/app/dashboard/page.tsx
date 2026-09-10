@@ -12,8 +12,9 @@ import { ExportMenu }       from '@/components/output/ExportMenu'
 import { ScanReport }       from '@/components/scanner/ScanReport'
 import { Spinner }          from '@/components/ui/Spinner'
 import { ApiConfigModal }   from '@/components/settings/ApiConfigModal'
+import { ASYNC_MAX_CHARS, SYNC_MAX_CHARS } from '@/lib/limits'
 
-const MAX_CHARS = 10_000
+const MAX_CHARS = ASYNC_MAX_CHARS
 
 function wordCount(s: string) {
   return s.trim() ? s.trim().split(/\s+/).length : 0
@@ -39,7 +40,7 @@ type MobileTab = 'input' | 'output' | 'scan'
 
 export default function Dashboard() {
   const { isAuthenticated, tier, clearAuth }                           = useUserStore()
-  const { humanize, status: hStatus, reset: resetH, response, error } = useHumanizeStore()
+  const { humanize, status: hStatus, reset: resetH, response, error, progressMessage } = useHumanizeStore()
   const { scan, status: sStatus, reset: resetS, response: scanResp }  = useScanStore()
   const { text, setText, clearText }                                   = useEditorStore()
   const { hasCustomConfig, config: apiConfig }                         = useApiConfigStore()
@@ -103,7 +104,10 @@ export default function Dashboard() {
                    px-4 py-3 outline-none placeholder-white/20 font-sans"
       />
       <div className="flex items-center justify-between px-4 py-3 border-t border-white/6 shrink-0">
-        <span className="text-xs text-white/30">{wordCount(text)} Words</span>
+        <span className="text-xs text-white/30">
+          {wordCount(text)} Words
+          {text.length > SYNC_MAX_CHARS && ' · processed in the background'}
+        </span>
         <button onClick={handleClear} title="Clear"
           className="text-white/20 hover:text-white/55 transition-colors">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
@@ -134,9 +138,9 @@ export default function Dashboard() {
       <div className="flex-1 overflow-y-auto px-4 py-3 text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
         {hLoading ? (
           <div className="h-full flex items-center justify-center">
-            <div className="text-center">
+            <div className="text-center px-6">
               <Spinner className="w-8 h-8 border-brand-violet/30 border-t-brand-violet block mx-auto mb-3" />
-              <p className="text-xs text-white/40">Rewriting…</p>
+              <p className="text-xs text-white/40">{progressMessage ?? 'Rewriting…'}</p>
             </div>
           </div>
         ) : hStatus === 'error' ? (
@@ -525,7 +529,10 @@ export default function Dashboard() {
               style={{ fontSize: '16px' }}
             />
             <div className="shrink-0 flex items-center justify-between px-5 py-3 border-t border-white/6">
-              <span className="text-xs text-white/30">{wordCount(text)} words</span>
+              <span className="text-xs text-white/30">
+                {wordCount(text)} words
+                {text.length > SYNC_MAX_CHARS && ' · background'}
+              </span>
               {text.length > 0 && (
                 <button
                   onClick={handleClear}
@@ -577,10 +584,10 @@ export default function Dashboard() {
               style={{ fontSize: '16px' }}>
               {hLoading ? (
                 <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
+                  <div className="text-center px-6">
                     <Spinner className="w-8 h-8 border-brand-violet/30 border-t-brand-violet block mx-auto mb-3" />
-                    <p className="text-sm text-white/40">Rewriting…</p>
-                    <p className="text-xs text-white/25 mt-1">Validating quality</p>
+                    <p className="text-sm text-white/40">{progressMessage ? 'Processing…' : 'Rewriting…'}</p>
+                    <p className="text-xs text-white/25 mt-1">{progressMessage ?? 'Validating quality'}</p>
                   </div>
                 </div>
               ) : hStatus === 'error' ? (
