@@ -73,8 +73,13 @@ export default function Dashboard() {
     })
   }
 
-  const humanScore = output ? Math.round((output.quality_scores.bertscore_f1 ?? 0.85) * 100) : 0
-  const scoreLabel = humanScore >= 90 ? 'Excellent' : humanScore >= 75 ? 'Good' : humanScore > 0 ? 'Fair' : '—'
+  // bertscore_f1 is null until the semantic-fidelity gate (Phase 1) is wired in —
+  // never fabricate a score in its place.
+  const humanScore = output && output.quality_scores.bertscore_f1 != null
+    ? Math.round(output.quality_scores.bertscore_f1 * 100)
+    : null
+  const scoreLabel = humanScore == null ? 'Not yet scored'
+    : humanScore >= 90 ? 'Excellent' : humanScore >= 75 ? 'Good' : 'Fair'
   const aiDetLabel = scanResp?.classification === 'human-written' ? 'Undetectable'
                    : scanResp?.classification === 'ai-generated'  ? 'Detected'
                    : scanResp?.classification === 'mixed'         ? 'Partial'
@@ -277,10 +282,19 @@ export default function Dashboard() {
                 {output && (
                   <>
                     <div className="flex items-center gap-3">
-                      <CircularScore pct={humanScore} />
+                      {humanScore != null ? (
+                        <CircularScore pct={humanScore} />
+                      ) : (
+                        <div className="w-[68px] h-[68px] rounded-full border border-white/10
+                                        flex items-center justify-center text-white/25 text-xs">
+                          —
+                        </div>
+                      )}
                       <div>
                         <p className="text-sm font-semibold text-white/70">Human Score</p>
-                        <p className="text-sm font-bold text-green-400">{scoreLabel}</p>
+                        <p className={`text-sm font-bold ${humanScore != null ? 'text-green-400' : 'text-white/40'}`}>
+                          {scoreLabel}
+                        </p>
                       </div>
                     </div>
                     <div className="w-px h-12 bg-white/8" />
@@ -313,17 +327,30 @@ export default function Dashboard() {
 
                 {output && (
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center
-                                    bg-green-500/10 border border-green-500/25">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border ${
+                      output.quality_scores.passed === true ? 'bg-green-500/10 border-green-500/25'
+                      : output.quality_scores.passed === false ? 'bg-red-500/10 border-red-500/25'
+                      : 'bg-white/5 border-white/10'
+                    }`}>
                       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden>
-                        <circle cx="10" cy="10" r="7.5" stroke="#22c55e" strokeWidth="1.4" />
-                        <path d="M6.5 10l2.5 2.5 5-5" stroke="#22c55e" strokeWidth="1.4" strokeLinecap="round" />
+                        <circle cx="10" cy="10" r="7.5"
+                          stroke={output.quality_scores.passed === true ? '#22c55e' : output.quality_scores.passed === false ? '#f87171' : '#ffffff40'}
+                          strokeWidth="1.4" />
+                        <path d="M6.5 10l2.5 2.5 5-5"
+                          stroke={output.quality_scores.passed === true ? '#22c55e' : output.quality_scores.passed === false ? '#f87171' : '#ffffff40'}
+                          strokeWidth="1.4" strokeLinecap="round" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white/70">Readability</p>
-                      <p className="text-sm font-bold text-green-400">
-                        {output.quality_scores.passed ? 'Natural' : 'Review'}
+                      <p className="text-sm font-semibold text-white/70">Fidelity check</p>
+                      <p className={`text-sm font-bold ${
+                        output.quality_scores.passed === true ? 'text-green-400'
+                        : output.quality_scores.passed === false ? 'text-red-400'
+                        : 'text-white/40'
+                      }`}>
+                        {output.quality_scores.passed === true ? 'Natural'
+                          : output.quality_scores.passed === false ? 'Review'
+                          : 'Not yet scored'}
                       </p>
                     </div>
                   </div>
@@ -510,10 +537,13 @@ export default function Dashboard() {
             {/* Quality chips */}
             {output && (
               <div className="shrink-0 flex gap-2 px-4 pt-3 pb-2 flex-wrap border-b border-white/6">
-                <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full
-                                 bg-green-500/10 border border-green-500/20 text-green-400 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                  {humanScore}% Human · {scoreLabel}
+                <span className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium border ${
+                  humanScore != null
+                    ? 'bg-green-500/10 border-green-500/20 text-green-400'
+                    : 'bg-white/5 border-white/10 text-white/40'
+                }`}>
+                  {humanScore != null && <span className="w-1.5 h-1.5 rounded-full bg-green-400" />}
+                  {humanScore != null ? `${humanScore}% Human · ${scoreLabel}` : scoreLabel}
                 </span>
                 {output.quality_scores.passed && (
                   <span className="text-xs px-2.5 py-1 rounded-full font-medium

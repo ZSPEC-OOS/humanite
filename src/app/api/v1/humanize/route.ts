@@ -7,8 +7,10 @@ import { preprocess } from '@/lib/preprocess'
 import { postprocess } from '@/lib/postprocess'
 import { generateWatermark } from '@/lib/watermark'
 
-const ABSOLUTE_MAX_CHARS = 100_000
-const SYNC_MAX_CHARS = 10_000
+// Humanize runs synchronously against the Vercel function's request timeout —
+// there is no job queue behind the "pending" status yet, so the cap below IS
+// the real limit until async processing (chunked, queue-backed) ships.
+const MAX_CHARS = 10_000
 
 const SYSTEM_PROMPT = `You are a professional editor. Your only job is to rewrite the provided text \
 so it reads as natural, fluent human prose. You must:
@@ -81,7 +83,6 @@ export async function POST(req: NextRequest) {
   let body: {
     text?: string
     settings?: { intensity?: number; tone?: string; domain?: string; preserve_citations?: boolean }
-    async_mode?: boolean
     api_config?: { api_key?: string; model_id?: string; base_url?: string }
   }
   try {
@@ -105,10 +106,15 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     )
   }
-  if (text.length > ABSOLUTE_MAX_CHARS) {
+  if (text.length > MAX_CHARS) {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_MAX_LENGTH', message: `Text exceeds the ${ABSOLUTE_MAX_CHARS.toLocaleString()} character limit.` } },
-      { status: 413 },
+      {
+        error: {
+          code: 'VALIDATION_MAX_LENGTH',
+          message: `Text exceeds the ${MAX_CHARS.toLocaleString()} character limit. Asynchronous processing for longer documents is not yet available.`,
+        },
+      },
+      { status: 422 },
     )
   }
 
@@ -137,19 +143,6 @@ export async function POST(req: NextRequest) {
     completedAt: null,
     errorCode: null,
   })
-
-  // Long texts return a pending job immediately (client should poll)
-  if (text.length > SYNC_MAX_CHARS || body.async_mode) {
-    return NextResponse.json({
-      job_id: jobId,
-      status: 'pending',
-      output: null,
-      preprocessing_metadata: null,
-      processing_metadata: null,
-      result_url: `/v1/jobs/${jobId}`,
-      warning: 'Text queued for async processing — poll result_url for completion.',
-    })
-  }
 
   try {
     const apiCfg = body.api_config
@@ -180,7 +173,12 @@ export async function POST(req: NextRequest) {
     const watermark = generateWatermark(jobId, modelUsed)
     const durationMs = Date.now() - start
 
-    await db().collection('jobs').doc(jobId).update({ status: 'completed', completedAt: new Date(), updatedAt: new Date() })
+    await db().collection('jobs').doc(jobId).update({
+      status: 'completed',
+      completedAt: new Date(),
+      updatedAt: new Date(),
+      watermarkFingerprint: watermark.fingerprint,
+    })
 
     return NextResponse.json({
       job_id: jobId,
@@ -188,10 +186,12 @@ export async function POST(req: NextRequest) {
       output: {
         text: postText,
         quality_scores: {
-          bertscore_f1: 1.0,
-          nli_entailment: 1.0,
-          entity_overlap: 1.0,
-          passed: true,
+          // No semantic-fidelity gate runs yet (BERTScore / NLI / entity-overlap) —
+          // report unknown rather than a fabricated pass. See Phase 1 of the roadmap.
+          bertscore_f1: null,
+          nli_entailment: null,
+          entity_overlap: null,
+          passed: null,
           failed_gate: null,
           retry_count: 0,
         },

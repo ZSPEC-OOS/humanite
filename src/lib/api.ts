@@ -67,6 +67,14 @@ export async function authRegister(email: string, password: string): Promise<Tok
   )
 }
 
+export async function authLogin(email: string, password: string): Promise<TokenResponse> {
+  return apiFetch<TokenResponse>(
+    '/v1/auth/login',
+    { method: 'POST', body: JSON.stringify({ email, password }) },
+    true,
+  )
+}
+
 // ── Humanize ──────────────────────────────────────────────────────────────────
 
 export interface HumanizeSettings {
@@ -79,10 +87,12 @@ export interface HumanizeSettings {
 export interface HumanizeOutput {
   text: string
   quality_scores: {
-    bertscore_f1: number
-    nli_entailment: number
-    entity_overlap: number
-    passed: boolean
+    // null until the semantic-fidelity gates (Phase 1) are wired in —
+    // never report a fabricated pass/score.
+    bertscore_f1: number | null
+    nli_entailment: number | null
+    entity_overlap: number | null
+    passed: boolean | null
     failed_gate: string | null
     retry_count: number
   }
@@ -120,10 +130,9 @@ export interface HumanizeAPIResponse {
 export async function apiHumanize(
   text: string,
   settings: HumanizeSettings,
-  asyncMode = false,
 ): Promise<HumanizeAPIResponse> {
   const { config, hasCustomConfig } = useApiConfigStore.getState()
-  const body: Record<string, unknown> = { text, settings, async_mode: asyncMode }
+  const body: Record<string, unknown> = { text, settings }
   if (hasCustomConfig()) {
     body.api_config = {
       api_key: config.apiKey,
