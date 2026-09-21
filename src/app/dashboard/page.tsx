@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useUserStore }     from '@/stores/userStore'
 import { useHumanizeStore } from '@/stores/humanizeStore'
 import { useScanStore }     from '@/stores/scanStore'
@@ -39,25 +38,18 @@ function CircularScore({ pct }: { pct: number }) {
 type MobileTab = 'input' | 'output' | 'scan'
 
 export default function Dashboard() {
-  const { isAuthenticated, tier, clearAuth }                           = useUserStore()
+  const { tier }                                                       = useUserStore()
   const { humanize, status: hStatus, reset: resetH, response, error, progressMessage } = useHumanizeStore()
   const { scan, status: sStatus, reset: resetS, response: scanResp }  = useScanStore()
   const { text, setText, clearText }                                   = useEditorStore()
   const { hasCustomConfig, config: apiConfig }                         = useApiConfigStore()
-  const router = useRouter()
   const [mobileTab, setMobileTab]     = useState<MobileTab>('input')
   const [menuOpen, setMenuOpen]       = useState(false)
   const [copied, setCopied]           = useState(false)
   const [apiConfigOpen, setApiConfigOpen] = useState(false)
 
-  useEffect(() => {
-    if (!isAuthenticated()) router.replace('/auth/login')
-  }, [isAuthenticated, router])
-
   useEffect(() => { if (hStatus === 'done') setMobileTab('output') }, [hStatus])
   useEffect(() => { if (sStatus === 'done') setMobileTab('scan')   }, [sStatus])
-
-  if (!isAuthenticated()) return null
 
   const output     = response?.output
   const outputText = output?.text ?? ''
@@ -226,8 +218,6 @@ export default function Dashboard() {
             </span>
             <button onClick={handleClear}
               className="text-xs text-white/30 hover:text-white/60 transition-colors">Clear</button>
-            <button onClick={() => { clearAuth(); router.push('/auth/login') }}
-              className="text-xs text-white/30 hover:text-white/60 transition-colors">Sign out</button>
           </div>
         </header>
         <div className="flex flex-col flex-1 min-h-0 p-5 gap-4">
@@ -474,13 +464,6 @@ export default function Dashboard() {
                        py-2.5 px-3 rounded-xl hover:bg-white/5 transition-all"
           >
             Clear all
-          </button>
-          <button
-            onClick={() => { clearAuth(); router.push('/auth/login') }}
-            className="w-full text-left text-sm text-red-400/70 hover:text-red-400
-                       py-2.5 px-3 rounded-xl hover:bg-red-500/8 transition-all"
-          >
-            Sign out
           </button>
         </div>
       </div>
