@@ -48,7 +48,7 @@ export default function LandingPage() {
         borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
         {/* Main bar */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        <div style={{ display: 'flex', alignItems: 'center',
                       padding: '0 20px', height: '60px', maxWidth: 1200, margin: '0 auto' }}>
           {/* Logo */}
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
@@ -67,22 +67,6 @@ export default function LandingPage() {
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>Humanite</span>
           </a>
-
-          {/* CTA */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link href="/dashboard" style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '9px 18px', borderRadius: 12, fontSize: 14, fontWeight: 600,
-              background: 'linear-gradient(135deg, #7c3aed, #a855f7 50%, #ec4899)',
-              color: '#fff', textDecoration: 'none',
-            }}>
-              Get Started
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden>
-                <path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" strokeWidth="1.6"
-                  strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </Link>
-          </div>
         </div>
       </header>
 
