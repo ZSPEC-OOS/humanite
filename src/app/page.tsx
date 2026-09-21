@@ -1,5 +1,4 @@
 'use client'
-import { useState } from 'react'
 import Link from 'next/link'
 
 /* ── App preview card ─────────────────────────────────────────────────── */
@@ -9,8 +8,6 @@ const AI_TEXT = `Artificial intelligence has become an essential part of our dai
 const HUMAN_TEXT = `There's no denying how much artificial intelligence has become a part of our everyday lives. It helps us get things done faster, whether it's drafting an email, brainstorming ideas, or creating content. That said, AI-generated text often feels a little flat or mechanical—and honestly, it's usually pretty easy for detectors to flag.`
 
 export default function LandingPage() {
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
-
   return (
     <div className="relative min-h-screen overflow-x-hidden"
          style={{ background: '#06060f', color: '#fff' }}>
@@ -71,20 +68,8 @@ export default function LandingPage() {
             }}>Humanite</span>
           </a>
 
-          {/* Desktop nav links — hidden on mobile */}
-          <nav className="hidden md:flex" style={{ gap: 28, listStyle: 'none', alignItems: 'center' }}>
-            {['Features', 'How It Works', 'Benefits', 'Pricing', 'FAQ'].map(l => (
-              <a key={l} href={`#${l.toLowerCase().replace(/\s+/g, '-')}`}
-                 style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', transition: 'color 0.15s' }}
-                 onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                 onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}>
-                {l}
-              </a>
-            ))}
-          </nav>
-
-          {/* Desktop CTA — hidden on mobile */}
-          <div className="hidden md:flex" style={{ alignItems: 'center', gap: 12 }}>
+          {/* CTA */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Link href="/dashboard" style={{
               fontSize: 14, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', padding: '6px 12px',
             }}>
@@ -103,58 +88,7 @@ export default function LandingPage() {
               </svg>
             </Link>
           </div>
-
-          {/* Mobile right side */}
-          <div className="flex md:hidden" style={{ alignItems: 'center', gap: 10 }}>
-            <Link href="/dashboard" style={{
-              fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 10,
-              background: 'linear-gradient(135deg, #7c3aed, #ec4899)',
-              color: '#fff', textDecoration: 'none',
-            }}>
-              Try Free
-            </Link>
-            {/* Hamburger */}
-            <button
-              onClick={() => setMobileNavOpen(o => !o)}
-              aria-label="Toggle menu"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-                       borderRadius: 10, width: 38, height: 38, display: 'flex',
-                       flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                       gap: 5, cursor: 'pointer', flexShrink: 0 }}
-            >
-              <span style={{ width: 16, height: 1.5, background: 'rgba(255,255,255,0.7)', borderRadius: 2,
-                             transition: 'transform 0.2s',
-                             transform: mobileNavOpen ? 'rotate(45deg) translate(3px, 3px)' : 'none' }} />
-              <span style={{ width: 16, height: 1.5, background: 'rgba(255,255,255,0.7)', borderRadius: 2,
-                             transition: 'opacity 0.2s',
-                             opacity: mobileNavOpen ? 0 : 1 }} />
-              <span style={{ width: 16, height: 1.5, background: 'rgba(255,255,255,0.7)', borderRadius: 2,
-                             transition: 'transform 0.2s',
-                             transform: mobileNavOpen ? 'rotate(-45deg) translate(3px, -3px)' : 'none' }} />
-            </button>
-          </div>
         </div>
-
-        {/* Mobile dropdown menu */}
-        {mobileNavOpen && (
-          <div className="md:hidden" style={{
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-            background: 'rgba(6,6,15,0.97)',
-            padding: '8px 0 16px',
-          }}>
-            {['Features', 'How It Works', 'Benefits', 'Pricing', 'FAQ'].map(l => (
-              <a key={l}
-                 href={`#${l.toLowerCase().replace(/\s+/g, '-')}`}
-                 onClick={() => setMobileNavOpen(false)}
-                 style={{
-                   display: 'block', padding: '12px 24px',
-                   fontSize: 15, color: 'rgba(255,255,255,0.7)', textDecoration: 'none',
-                 }}>
-                {l}
-              </a>
-            ))}
-          </div>
-        )}
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
