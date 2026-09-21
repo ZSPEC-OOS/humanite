@@ -71,11 +71,6 @@ export default function LandingPage() {
           {/* CTA */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Link href="/dashboard" style={{
-              fontSize: 14, color: 'rgba(255,255,255,0.6)', textDecoration: 'none', padding: '6px 12px',
-            }}>
-              Sign in
-            </Link>
-            <Link href="/dashboard" style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '9px 18px', borderRadius: 12, fontSize: 14, fontWeight: 600,
               background: 'linear-gradient(135deg, #7c3aed, #a855f7 50%, #ec4899)',
@@ -200,7 +195,7 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginTop: 4 }}>
-            <Link href="/auth/login" style={{
+            <Link href="/dashboard" style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '14px 28px', borderRadius: 14, fontSize: 15, fontWeight: 700,
               background: 'linear-gradient(135deg, #6d28d9, #a855f7 50%, #ec4899)',

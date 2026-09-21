@@ -1,12 +1,10 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useHumanizeStore } from '@/stores/humanizeStore'
-import { useUserStore }     from '@/stores/userStore'
 import { apiListPresets, apiCreatePreset, apiDeletePreset, Preset, APIError } from '@/lib/api'
 import { darkSelectCls, darkInputCls } from '@/components/ui/styles'
 
 export function PresetSelector() {
-  const { isAuthenticated }               = useUserStore()
   const { settings, setSettings }         = useHumanizeStore()
   const [presets, setPresets]             = useState<Preset[]>([])
   const [saveName, setSaveName]           = useState('')
@@ -15,9 +13,8 @@ export function PresetSelector() {
   const [error, setError]                 = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isAuthenticated()) return
     apiListPresets().then(setPresets).catch(() => {})
-  }, [isAuthenticated])
+  }, [])
 
   const handleLoad = (preset: Preset) => {
     setSettings({
@@ -55,8 +52,6 @@ export function PresetSelector() {
       setPresets(prev => prev.filter(p => p.id !== presetId))
     } catch { /* non-critical */ }
   }
-
-  if (!isAuthenticated()) return null
 
   return (
     <div className="flex items-center gap-2">
